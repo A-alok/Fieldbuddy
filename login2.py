@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QFrame, QCheckBox, QMessageBox, QStackedWidget)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont, QIcon, QPixmap
-from home import FieldBuddyDashboard
+from home_modified import HomeWindow
+import subprocess
 
 class DatabaseManager:
     def __init__(self):
@@ -606,10 +607,10 @@ class MountainAuthApp(QMainWindow):
             self.login_error_label.setText(message)
     
     def launch_home_dashboard(self, username):
-        self.home_app = QApplication(sys.argv)
-        self.home_window = FieldBuddyDashboard(username)
-        self.home_window.show()
-        self.home_app.exec()
+        # Close the current window
+        self.close()
+         # Launch home.py with the username
+        subprocess.Popen([sys.executable, "home_modified.py", username])
     
     def register(self):
         username = self.signup_username_input.text().strip()

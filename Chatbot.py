@@ -42,7 +42,22 @@ class ChatbotApp(QWidget):
         self.setStyleSheet("background-color: #f4f1de;")
 
         # Main layout
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
+        
+        # Top bar with back button
+        top_bar = QHBoxLayout()
+        self.back_button = QPushButton("← Back")
+        self.back_button.setStyleSheet("""
+            background-color: #bc4749; 
+            color: white; 
+            border-radius: 8px; 
+            padding: 8px;
+            font-size: 14px;
+        """)
+        self.back_button.clicked.connect(self.close)
+        top_bar.addWidget(self.back_button)
+        top_bar.addStretch()  # Push the back button to the left
+        main_layout.addLayout(top_bar)
 
         # Chat history display
         self.chat_display = QTextEdit()
@@ -53,7 +68,7 @@ class ChatbotApp(QWidget):
             padding: 10px;
             font-size: 14px;
         """)
-        layout.addWidget(self.chat_display)
+        main_layout.addWidget(self.chat_display)
 
         # User Input Area (Chatbox)
         input_layout = QHBoxLayout()
@@ -70,7 +85,6 @@ class ChatbotApp(QWidget):
         """)
         self.user_input.returnPressed.connect(self.send_message)
 
-        
         self.send_button = QPushButton("Send")
         self.send_button.setStyleSheet("""
             background-color: #6a994e; 
@@ -93,8 +107,8 @@ class ChatbotApp(QWidget):
         input_layout.addWidget(self.send_button)
         input_layout.addWidget(self.clear_button)
 
-        layout.addLayout(input_layout)
-        self.setLayout(layout)
+        main_layout.addLayout(input_layout)
+        self.setLayout(main_layout)
 
         self.update_chat_display(f"Chatbot: {self.current_question}", "left")
 
@@ -128,5 +142,5 @@ class ChatbotApp(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ChatbotApp()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())

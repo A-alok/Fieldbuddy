@@ -117,8 +117,33 @@ class CropRecommendationApp(QWidget):
 
         # Header Section
         header = QHBoxLayout()
+        
+        # Add back 
+        self.back_btn = QPushButton("← Back")  # Text with arrow
+        self.back_btn.setFont(QFont("Segoe UI", 10))  # Smaller font size
+        self.back_btn.setFixedSize(80, 30)  # Wider but same height
+        self.back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2b8a3e;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2f9e44;
+            }
+            QPushButton:pressed {
+                background-color: #248232;
+            }
+        """)
+        self.back_btn.setToolTip("Go back to previous screen")
+        self.back_btn.clicked.connect(self.go_back)
+        header.addWidget(self.back_btn)
+        
+        # Add icon and title
         icon_label = QLabel()
-        icon_label.setPixmap(QIcon("leaf.png").pixmap(40, 40))
+        icon_label.setPixmap(QIcon("D:\\Project\\new\\leaf.png").pixmap(40, 40))
         header.addWidget(icon_label)
         
         title = QLabel("FieldBuddy!!!")
@@ -215,6 +240,20 @@ class CropRecommendationApp(QWidget):
         main_layout.addLayout(button_container)
 
         self.setLayout(main_layout)
+
+    def go_back(self):
+        """Handle back button click"""
+        reply = QMessageBox.question(
+            self, 'Confirm Exit',
+            'Are you sure you want to go back?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Here you would typically go back to the previous screen
+            # For now, let's just close the window
+            self.close()
 
     def add_auto_load_button(self, layout):
         # Button to auto-load climate data
