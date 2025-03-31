@@ -8,8 +8,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QGuiApplication
-from login2 import MountainAuthApp
-from home_modified import HomeWindow
+# Remove the circular import
+# from login2 import MountainAuthApp
+# from home_modified import HomeWindow
 
 class ProfileEditDialog(QDialog):
     def __init__(self, parent=None, user_data=None):
@@ -222,10 +223,13 @@ class ProfileMenu(QWidget):
     logoutRequested = pyqtSignal()
     restartRequested = pyqtSignal()
     
-    def __init__(self, username):
+    def __init__(self, username, parent=None):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Popup)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Store parent window reference
+        self.parent_window = parent
         
         # Position near the profile icon in home.py
         screen = QGuiApplication.primaryScreen()
@@ -341,10 +345,19 @@ class ProfileMenu(QWidget):
         if os.path.exists("user_session.txt"):
             os.remove("user_session.txt")
 
+        # Close the parent window (home_modified.py) if it exists
+        if self.parent_window:
+            self.parent_window.close()
+        
+        # Import here to avoid circular import
+        from login2 import MountainAuthApp
+        
+        # Open login window
         self.login = MountainAuthApp()
         self.login.showMaximized()
         self.close()
-        self.login.close()
+        
+        # Close database connection
         self.db_manager.close()
         self.logoutRequested.emit()
 
@@ -354,3 +367,4 @@ if __name__ == "__main__":
     window = ProfileMenu(test_username)
     window.show()
     sys.exit(app.exec())
+

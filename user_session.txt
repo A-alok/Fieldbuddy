@@ -1,5 +1,5 @@
-username=Alok1
-email=Alok@gmail.com
-phone=8591553778
-state=Maharashtra
-city=Thane
+username=sachin
+email=None
+phone=None
+state=None
+city=None

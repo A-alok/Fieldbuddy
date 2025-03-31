@@ -12,6 +12,7 @@ from detail import CropRecommendationResult
 from weather import MainWindow
 from Chatbot import ChatbotApp
 from marketPrice import MarketPriceWindow
+# Import ProfileMenu at the function level to avoid circular imports
 
 class HomeWindow(QMainWindow):
     def __init__(self, username=None):
@@ -315,7 +316,21 @@ class HomeWindow(QMainWindow):
         return button
 
     def onProfileClicked(self):
-        subprocess.Popen([sys.executable, "profile_dropdown.py", self.user_data["username"]])
+        # Import here to avoid circular import
+        from profile_dropdown import ProfileMenu
+        
+        # Create profile menu with reference to this window
+        self.profile_menu = ProfileMenu(self.user_data["username"], self)
+        self.profile_menu.show()
+        
+        # Connect signals
+        self.profile_menu.logoutRequested.connect(self.close)
+        self.profile_menu.restartRequested.connect(self.restart)
+
+    def restart(self):
+        # Restart the application with the same username
+        QApplication.quit()
+        subprocess.Popen([sys.executable, "home_modified.py", self.user_data["username"]])
 
     def onRecommendationClicked(self):
         self.recommendation_window = CropRecommendationApp()
@@ -353,3 +368,4 @@ if __name__ == "__main__":
     window = HomeWindow(username)
     window.showMaximized()
     sys.exit(app.exec())
+

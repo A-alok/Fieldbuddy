@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QFrame, QCheckBox, QMessageBox, QStackedWidget)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont, QIcon, QPixmap
-from home_modified import HomeWindow
+# Import HomeWindow at the function level to avoid circular imports
 
 class DatabaseManager:
     def __init__(self):
@@ -606,6 +606,7 @@ class MountainAuthApp(QMainWindow):
             self.login_error_label.setText(message)
     
     def launch_home_dashboard(self, username):
+        from home_modified import HomeWindow
         self.home_window = HomeWindow(username)  # Create the home window instance
         self.home_window.showMaximized()        # Show it maximized
         self.close()                            # Close the login window
@@ -674,3 +675,4 @@ if __name__ == "__main__":
     window = MountainAuthApp()
     window.showMaximized()
     sys.exit(app.exec())
+
