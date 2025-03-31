@@ -1,3 +1,4 @@
+# profile_dropdown.py
 import sys
 import os
 import mysql.connector
@@ -5,8 +6,10 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QDialog,
     QLineEdit, QPushButton, QFormLayout, QFrame, QMessageBox, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QGuiApplication
+from login2 import MountainAuthApp
+from home_modified import HomeWindow
 
 class ProfileEditDialog(QDialog):
     def __init__(self, parent=None, user_data=None):
@@ -35,6 +38,10 @@ class ProfileEditDialog(QDialog):
             QLineEdit:focus {
                 border: 2px solid #2b8a3e;
             }
+            QLineEdit[readOnly="true"] {
+                background-color: #f1f3f5;
+                color: #868e96;
+            }
             QPushButton {
                 background-color: #2b8a3e;
                 color: white;
@@ -59,32 +66,40 @@ class ProfileEditDialog(QDialog):
             }
         """)
         
-        if user_data is None:
-            user_data = {
-                "username": "",
-                "email": "",
-                "phone": "",
-                "state": "",
-                "city": ""
-            }
-        
+        # Initialize with empty data if none provided
+        self.user_data = user_data or {
+            "username": "",
+            "email": "",
+            "phone": "",
+            "state": "",
+            "city": ""
+        }
+
         # Create form layout
         layout = QFormLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
-        # Add fields
+        # Username field (read-only)
+        self.username_input = QLineEdit(self.user_data.get("username", ""))
+        self.username_input.setReadOnly(True)
+        self.username_input.setProperty("readOnly", "true")  # For styling
+        layout.addRow("Username:", self.username_input)
         
-        self.phone_input = QLineEdit(user_data["phone"])
+        # Phone field
+        self.phone_input = QLineEdit(self.user_data.get("phone", ""))
         layout.addRow("Phone:", self.phone_input)
         
-        self.email_input = QLineEdit(user_data["email"])
+        # Email field
+        self.email_input = QLineEdit(self.user_data.get("email", ""))
         layout.addRow("Email:", self.email_input)
         
-        self.state_input = QLineEdit(user_data["state"])
+        # State field
+        self.state_input = QLineEdit(self.user_data.get("state", ""))
         layout.addRow("State:", self.state_input)
         
-        self.city_input = QLineEdit(user_data["city"])
+        # City field
+        self.city_input = QLineEdit(self.user_data.get("city", ""))
         layout.addRow("City:", self.city_input)
         
         # Add buttons
@@ -133,7 +148,6 @@ class DatabaseManager:
     
     def create_tables(self):
         cursor = self.connection.cursor()
-        # Create users table if it doesn't exist
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -173,7 +187,14 @@ class DatabaseManager:
             cursor.close()
             
             if result:
-                return result
+                # Ensure all fields exist even if NULL in database
+                return {
+                    "username": result.get("username", username),
+                    "email": result.get("email", ""),
+                    "phone": result.get("phone", ""),
+                    "state": result.get("state", ""),
+                    "city": result.get("city", "")
+                }
             else:
                 return {
                     "username": username,
@@ -198,6 +219,9 @@ class DatabaseManager:
             print("Database connection closed")
 
 class ProfileMenu(QWidget):
+    logoutRequested = pyqtSignal()
+    restartRequested = pyqtSignal()
+    
     def __init__(self, username):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Popup)
@@ -217,10 +241,7 @@ class ProfileMenu(QWidget):
         self.initUI()
     
     def load_user_data(self):
-        # Load user data from database
         self.user_data = self.db_manager.get_user_data(self.username)
-        
-        # Save to session file for other parts of the app
         with open("user_session.txt", "w") as f:
             for key, value in self.user_data.items():
                 f.write(f"{key}={value}\n")
@@ -230,7 +251,6 @@ class ProfileMenu(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Create dropdown frame
         dropdown_frame = QFrame()
         dropdown_frame.setStyleSheet("""
             QFrame {
@@ -252,7 +272,6 @@ class ProfileMenu(QWidget):
             }
         """)
         
-        # Add shadow effect using QGraphicsDropShadowEffect
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(15)
         shadow.setXOffset(0)
@@ -264,7 +283,6 @@ class ProfileMenu(QWidget):
         dropdown_layout.setContentsMargins(0, 0, 0, 0)
         dropdown_layout.setSpacing(0)
         
-        # User info section
         user_info = QLabel(f"{self.user_data['username']}")
         user_info.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         user_info.setStyleSheet("""
@@ -277,20 +295,17 @@ class ProfileMenu(QWidget):
         user_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
         dropdown_layout.addWidget(user_info)
         
-        # Edit Profile button
         edit_profile_btn = QPushButton("Edit Profile")
         edit_profile_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         edit_profile_btn.clicked.connect(self.editProfile)
         dropdown_layout.addWidget(edit_profile_btn)
         
-        # Add separator
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setStyleSheet("background-color: #e9ecef;")
         separator.setFixedHeight(1)
         dropdown_layout.addWidget(separator)
         
-        # Logout button
         logout_btn = QPushButton("Logout")
         logout_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         logout_btn.clicked.connect(self.logout)
@@ -302,7 +317,6 @@ class ProfileMenu(QWidget):
     def editProfile(self):
         dialog = ProfileEditDialog(None, self.user_data)
         if dialog.exec():
-            # Update user data and save to database
             updated_data = dialog.get_user_data()
             success, message = self.db_manager.update_user_profile(
                 updated_data["username"],
@@ -313,47 +327,30 @@ class ProfileMenu(QWidget):
             )
             
             if success:
-                # Update session file
                 with open("user_session.txt", "w") as f:
                     for key, value in updated_data.items():
                         f.write(f"{key}={value}\n")
                 
                 QMessageBox.information(None, "Profile Updated", "Your profile has been updated successfully!")
-                
-                # Close menu and restart home to reflect changes
+                self.restartRequested.emit()
                 self.close()
-                self.db_manager.close()
-                os.execl(sys.executable, sys.executable, "home.py")
             else:
                 QMessageBox.critical(None, "Error", message)
     
     def logout(self):
-        # Remove session file
         if os.path.exists("user_session.txt"):
             os.remove("user_session.txt")
-        
-        # Close menu and database connection
-        self.close()
-        self.db_manager.close()
-        
-        # Launch login2.py
-        import subprocess
-        subprocess.Popen([sys.executable, "login2.py"])
-        
-        # Find and close home.py process
-        for proc in QApplication.topLevelWidgets():
-            if proc.windowTitle() == "FieldBuddy Dashboard":
-                proc.close()
 
-# For testing the profile menu directly
+        self.login = MountainAuthApp()
+        self.login.showMaximized()
+        self.close()
+        self.login.close()
+        self.db_manager.close()
+        self.logoutRequested.emit()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
-    # Create a test username - in real usage, this would come from login
-    test_username = "USERNAME"
-    if len(sys.argv) > 1:
-        test_username = sys.argv[1]
-    
+    test_username = "test_user" if len(sys.argv) < 2 else sys.argv[1]
     window = ProfileMenu(test_username)
     window.show()
     sys.exit(app.exec())

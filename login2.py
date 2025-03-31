@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 from home_modified import HomeWindow
-import subprocess
 
 class DatabaseManager:
     def __init__(self):
@@ -503,7 +502,7 @@ class MountainAuthApp(QMainWindow):
         confirm_layout.addWidget(self.confirm_password_input)
         signup_layout.addWidget(confirm_frame)
         
-        register_button = QPushButton("J o i n")
+        register_button = QPushButton("S I G N  U P")
         register_button.setToolTip("Create your new account")
         register_button.setFixedHeight(50)
         register_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -607,10 +606,9 @@ class MountainAuthApp(QMainWindow):
             self.login_error_label.setText(message)
     
     def launch_home_dashboard(self, username):
-        # Close the current window
-        self.close()
-         # Launch home.py with the username
-        subprocess.Popen([sys.executable, "home_modified.py", username])
+        self.home_window = HomeWindow(username)  # Create the home window instance
+        self.home_window.showMaximized()        # Show it maximized
+        self.close()                            # Close the login window
     
     def register(self):
         username = self.signup_username_input.text().strip()

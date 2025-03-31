@@ -17,10 +17,13 @@ class CropRecommendationResult(QWidget):
         self.parent = parent
         self.crop_name = crop_name or "rice"  # Default crop if none provided
         self.crop_data = crop_data or self.get_default_crop_data()
-        self.init_ui()  # Corrected method name
+        self.init_ui()
     
     def init_ui(self):
         """Initialize the user interface"""
+        # Set white background for main window
+        self.setStyleSheet("background-color: white;")
+        
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -213,6 +216,7 @@ class CropRecommendationResult(QWidget):
                 border-top-right-radius: 4px;
                 padding: 8px 16px;
                 margin-right: 2px;
+                color: black; /* Changed text color to black */
             }
             QTabBar::tab:selected {
                 background-color: white;
@@ -243,19 +247,37 @@ class CropRecommendationResult(QWidget):
                 font-size: 16px;
             """)
         
-        crop_badge = QLabel(self.crop_data["growing_season"])
-        crop_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        crop_badge.setStyleSheet("""
-            background-color: #e6f4ea;
-            color: #2b8a3e;
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-weight: bold;
-            margin: 10px;
+        # Add growing tips box below the image
+        tips_box = QGroupBox("Growing Tips")
+        tips_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #e6f4ea;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+                padding: 15px;
+                margin-top: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                color: #2b8a3e;
+            }
         """)
         
+        tips_layout = QVBoxLayout()
+        tips_content = QLabel("""
+        • Prepare soil properly before planting
+        • Maintain adequate spacing between plants
+        • Monitor water levels regularly
+        • Apply fertilizers according to soil test results
+        """)
+        tips_content.setWordWrap(True)
+        tips_layout.addWidget(tips_content)
+        tips_box.setLayout(tips_layout)
+        
         image_layout.addWidget(image_label)
-        image_layout.addWidget(crop_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        image_layout.addWidget(tips_box)
         image_widget.setLayout(image_layout)
         
         # Growing tips tab
@@ -263,106 +285,244 @@ class CropRecommendationResult(QWidget):
         tips_widget.setWidgetResizable(True)
         tips_content = QWidget()
         tips_layout = QVBoxLayout()
+        tips_layout.setContentsMargins(10, 10, 10, 10)
+        tips_layout.setSpacing(15)
         
-        tips_title = QLabel(f"Growing Tips for {self.crop_name.title()}")
+        tips_title = QLabel(f"Growing Details for {self.crop_name.title()}")
         tips_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         tips_layout.addWidget(tips_title)
-        
-        # Planting tips
-        planting_box = QGroupBox()
-        planting_box.setStyleSheet("""
+
+        # Climate
+        climate_box = QGroupBox()
+        climate_box.setStyleSheet("""
             QGroupBox {
                 background-color: #e7f5ff;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        planting_layout = QVBoxLayout()
-        planting_title = QLabel("Planting")
-        planting_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        planting_title.setStyleSheet("color: #1971c2;")
-        
-        planting_tips = QLabel(f"""
-        • Plant during {self.crop_data["growing_season"]} for optimal growth
-        • Ensure soil pH is appropriate for {self.crop_name}
-        • Space plants according to variety recommendations
+        climate_layout = QVBoxLayout()
+        climate_title = QLabel("Climate")
+        climate_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        climate_title.setStyleSheet("color: #1971c2;")
+        climate_tips = QLabel(f"""
+        • Optimal temperature: {self.crop_data["optimal_temperature"]}
+        • Humidity requirements: Moderate to high
+        • Frost sensitivity: Not frost tolerant
         """)
-        planting_tips.setWordWrap(True)
-        
-        planting_layout.addWidget(planting_title)
-        planting_layout.addWidget(planting_tips)
-        planting_box.setLayout(planting_layout)
-        
-        # Care tips
-        care_box = QGroupBox()
-        care_box.setStyleSheet("""
+        climate_tips.setWordWrap(True)
+        climate_layout.addWidget(climate_title)
+        climate_layout.addWidget(climate_tips)
+        climate_box.setLayout(climate_layout)
+        tips_layout.addWidget(climate_box)
+
+        # Soil Type
+        soil_box = QGroupBox()
+        soil_box.setStyleSheet("""
             QGroupBox {
                 background-color: #e6f4ea;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        care_layout = QVBoxLayout()
-        care_title = QLabel("Care & Maintenance")
-        care_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        care_title.setStyleSheet("color: #2b8a3e;")
-        
-        care_tips = QLabel(f"""
-        • Water according to {self.crop_data["water_requirements"].lower()} needs
-        • Monitor for pests and diseases regularly
-        • Apply appropriate fertilizers based on soil test results
+        soil_layout = QVBoxLayout()
+        soil_title = QLabel("Soil Type")
+        soil_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        soil_title.setStyleSheet("color: #2b8a3e;")
+        soil_tips = QLabel(f"""
+        • Preferred soil: {self.crop_data["soil_preference"]}
+        • Drainage requirements: Moderate
+        • Organic matter content: >2%
         """)
-        care_tips.setWordWrap(True)
-        
-        care_layout.addWidget(care_title)
-        care_layout.addWidget(care_tips)
-        care_box.setLayout(care_layout)
-        
-        # Harvesting tips
-        harvest_box = QGroupBox()
-        harvest_box.setStyleSheet("""
+        soil_tips.setWordWrap(True)
+        soil_layout.addWidget(soil_title)
+        soil_layout.addWidget(soil_tips)
+        soil_box.setLayout(soil_layout)
+        tips_layout.addWidget(soil_box)
+
+        # Growing Season
+        season_box = QGroupBox()
+        season_box.setStyleSheet("""
             QGroupBox {
                 background-color: #fff9db;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        harvest_layout = QVBoxLayout()
-        harvest_title = QLabel("Harvesting")
-        harvest_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        harvest_title.setStyleSheet("color: #e67700;")
-        
-        harvest_tips = QLabel("""
-        • Harvest when the crop reaches maturity
-        • Use proper harvesting techniques to avoid damage
-        • Store in appropriate conditions to maintain freshness
+        season_layout = QVBoxLayout()
+        season_title = QLabel("Growing Season")
+        season_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        season_title.setStyleSheet("color: #e67700;")
+        season_tips = QLabel(f"""
+        • Best planting time: {self.crop_data["growing_season"]}
+        • Duration: 3-6 months
+        • Crop rotation: Annual
         """)
-        harvest_tips.setWordWrap(True)
-        
-        harvest_layout.addWidget(harvest_title)
-        harvest_layout.addWidget(harvest_tips)
-        harvest_box.setLayout(harvest_layout)
-        
-        tips_layout.addWidget(planting_box)
-        tips_layout.addWidget(care_box)
-        tips_layout.addWidget(harvest_box)
-        tips_layout.addStretch()
+        season_tips.setWordWrap(True)
+        season_layout.addWidget(season_title)
+        season_layout.addWidget(season_tips)
+        season_box.setLayout(season_layout)
+        tips_layout.addWidget(season_box)
+
+        # Yield Per Acre
+        yield_box = QGroupBox()
+        yield_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #e6e6ff;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        yield_layout = QVBoxLayout()
+        yield_title = QLabel("Yield Per Acre")
+        yield_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        yield_title.setStyleSheet("color: #4a47a3;")
+        yield_tips = QLabel("""
+        • Average yield: 2-3 tons
+        • Harvest index: 0.4-0.5
+        • Yield factors: Proper irrigation and fertilization
+        """)
+        yield_tips.setWordWrap(True)
+        yield_layout.addWidget(yield_title)
+        yield_layout.addWidget(yield_tips)
+        yield_box.setLayout(yield_layout)
+        tips_layout.addWidget(yield_box)
+
+        # Market Price
+        price_box = QGroupBox()
+        price_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #fde2ff;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        price_layout = QVBoxLayout()
+        price_title = QLabel("Market Price")
+        price_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        price_title.setStyleSheet("color: #8e44ad;")
+        price_tips = QLabel("""
+        • Current price: $300-$500/ton
+        • Price trends: Seasonal variations
+        • Market demand: High
+        """)
+        price_tips.setWordWrap(True)
+        price_layout.addWidget(price_title)
+        price_layout.addWidget(price_tips)
+        price_box.setLayout(price_layout)
+        tips_layout.addWidget(price_box)
+
+        # Maturity Day
+        maturity_box = QGroupBox()
+        maturity_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #ffe8cc;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        maturity_layout = QVBoxLayout()
+        maturity_title = QLabel("Maturity Day")
+        maturity_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        maturity_title.setStyleSheet("color: #d35400;")
+        maturity_tips = QLabel("""
+        • Days to maturity: 100-120 days
+        • Growth stages: Vegetative, reproductive, ripening
+        • Harvest window: 7-10 days
+        """)
+        maturity_tips.setWordWrap(True)
+        maturity_layout.addWidget(maturity_title)
+        maturity_layout.addWidget(maturity_tips)
+        maturity_box.setLayout(maturity_layout)
+        tips_layout.addWidget(maturity_box)
+
+        # Water Requirement
+        water_box = QGroupBox()
+        water_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #d0f0fd;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        water_layout = QVBoxLayout()
+        water_title = QLabel("Water Requirement")
+        water_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        water_title.setStyleSheet("color: #1a73e8;")
+        water_tips = QLabel(f"""
+        • {self.crop_data["water_requirements"]}
+        • Irrigation frequency: Weekly
+        • Water depth: 5-10 cm
+        """)
+        water_tips.setWordWrap(True)
+        water_layout.addWidget(water_title)
+        water_layout.addWidget(water_tips)
+        water_box.setLayout(water_layout)
+        tips_layout.addWidget(water_box)
+
+        # Nutrient Recommendation
+        nutrient_box = QGroupBox()
+        nutrient_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #d4f7d4;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        nutrient_layout = QVBoxLayout()
+        nutrient_title = QLabel("Nutrient Recommendation")
+        nutrient_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        nutrient_title.setStyleSheet("color: #2e7d32;")
+        nutrient_tips = QLabel("""
+        • NPK ratio: 4:2:1
+        • Micronutrients: Zinc, Iron
+        • Application timing: During tillering
+        """)
+        nutrient_tips.setWordWrap(True)
+        nutrient_layout.addWidget(nutrient_title)
+        nutrient_layout.addWidget(nutrient_tips)
+        nutrient_box.setLayout(nutrient_layout)
+        tips_layout.addWidget(nutrient_box)
+
+        # Pest & Disease Information
+        pest_box = QGroupBox()
+        pest_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #ffe5e5;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        pest_layout = QVBoxLayout()
+        pest_title = QLabel("Pest & Disease Information")
+        pest_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        pest_title.setStyleSheet("color: #c62828;")
+        pest_tips = QLabel("""
+        • Common pests: Stem borers, leaf folders
+        • Diseases: Blast, bacterial blight
+        • Prevention: Crop rotation, resistant varieties
+        """)
+        pest_tips.setWordWrap(True)
+        pest_layout.addWidget(pest_title)
+        pest_layout.addWidget(pest_tips)
+        pest_box.setLayout(pest_layout)
+        tips_layout.addWidget(pest_box)
         
         tips_content.setLayout(tips_layout)
         tips_widget.setWidget(tips_content)
         
         # Add tabs
         tabs.addTab(image_widget, "Crop Image")
-        tabs.addTab(tips_widget, "Growing Tips")
+        tabs.addTab(tips_widget, "Crop Details")
         
         right_column.addWidget(tabs)
         
@@ -372,7 +532,7 @@ class CropRecommendationResult(QWidget):
         
         main_layout.addLayout(content_layout)
         
-        # Add save/share buttons
+        # Add save button
         button_layout = QHBoxLayout()
         
         save_button = QPushButton("Save Recommendation")
@@ -393,27 +553,8 @@ class CropRecommendationResult(QWidget):
         """)
         save_button.clicked.connect(self.save_recommendation)
         
-        share_button = QPushButton("Share Results")
-        share_button.setIcon(QIcon.fromTheme("document-share"))
-        share_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1971c2;
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                border-radius: 6px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1c7ed6;
-            }
-        """)
-        share_button.clicked.connect(self.share_recommendation)
-        
         button_layout.addStretch()
         button_layout.addWidget(save_button)
-        button_layout.addWidget(share_button)
         button_layout.addStretch()
         
         main_layout.addLayout(button_layout)
@@ -522,21 +663,51 @@ class CropRecommendationResult(QWidget):
                     f"• Soil Preference: {self.crop_data['soil_preference']}"
                 ]),
                 ("Nutritional Value", self.crop_data["nutritional_value"]),
-                ("Growing Tips", [
-                    ("Planting", [
-                        f"• Plant during {self.crop_data['growing_season']}",
-                        f"• Ensure soil pH is appropriate for {self.crop_name}",
-                        "• Space plants properly"
+                ("Crop Details", [
+                    ("Climate", [
+                        f"• Optimal temperature: {self.crop_data['optimal_temperature']}",
+                        "• Humidity requirements: Moderate to high",
+                        "• Frost sensitivity: Not frost tolerant"
                     ]),
-                    ("Care", [
-                        f"• Water according to {self.crop_data['water_requirements']}",
-                        "• Monitor for pests",
-                        "• Apply appropriate fertilizers"
+                    ("Soil Type", [
+                        f"• Preferred soil: {self.crop_data['soil_preference']}",
+                        "• Drainage requirements: Moderate",
+                        "• Organic matter content: >2%"
                     ]),
-                    ("Harvesting", [
-                        "• Harvest at maturity",
-                        "• Use proper techniques",
-                        "• Store properly"
+                    ("Growing Season", [
+                        f"• Best planting time: {self.crop_data['growing_season']}",
+                        "• Duration: 3-6 months",
+                        "• Crop rotation: Annual"
+                    ]),
+                    ("Yield Per Acre", [
+                        "• Average yield: 2-3 tons",
+                        "• Harvest index: 0.4-0.5",
+                        "• Yield factors: Proper irrigation and fertilization"
+                    ]),
+                    ("Market Price", [
+                        "• Current price: $300-$500/ton",
+                        "• Price trends: Seasonal variations",
+                        "• Market demand: High"
+                    ]),
+                    ("Maturity Day", [
+                        "• Days to maturity: 100-120 days",
+                        "• Growth stages: Vegetative, reproductive, ripening",
+                        "• Harvest window: 7-10 days"
+                    ]),
+                    ("Water Requirement", [
+                        f"• {self.crop_data['water_requirements']}",
+                        "• Irrigation frequency: Weekly",
+                        "• Water depth: 5-10 cm"
+                    ]),
+                    ("Nutrient Recommendation", [
+                        "• NPK ratio: 4:2:1",
+                        "• Micronutrients: Zinc, Iron",
+                        "• Application timing: During tillering"
+                    ]),
+                    ("Pest & Disease Information", [
+                        "• Common pests: Stem borers, leaf folders",
+                        "• Diseases: Blast, bacterial blight",
+                        "• Prevention: Crop rotation, resistant varieties"
                     ])
                 ])
             ]
@@ -548,7 +719,7 @@ class CropRecommendationResult(QWidget):
                         if isinstance(item, tuple):  # Sub-sections
                             content.append(Paragraph(item[0], styles['Heading3']))
                             for subitem in item[1]:
-                                content.append(Paragraph(subitem, styles['Normal']))
+                                content.append(Paragraph(f"• {subitem}", styles['Normal']))
                         else:
                             content.append(Paragraph(item, styles['Normal']))
                 else:
@@ -583,21 +754,51 @@ class CropRecommendationResult(QWidget):
                     f"Soil Preference: {self.crop_data['soil_preference']}"
                 ]),
                 ("NUTRITIONAL VALUE", self.crop_data["nutritional_value"]),
-                ("GROWING TIPS", [
-                    ("PLANTING", [
-                        f"Plant during {self.crop_data['growing_season']}",
-                        f"Ensure soil pH is appropriate for {self.crop_name}",
-                        "Space plants properly"
+                ("CROP DETAILS", [
+                    ("CLIMATE", [
+                        f"Optimal temperature: {self.crop_data['optimal_temperature']}",
+                        "Humidity requirements: Moderate to high",
+                        "Frost sensitivity: Not frost tolerant"
                     ]),
-                    ("CARE & MAINTENANCE", [
-                        f"Water according to {self.crop_data['water_requirements']}",
-                        "Monitor for pests and diseases",
-                        "Apply appropriate fertilizers"
+                    ("SOIL TYPE", [
+                        f"Preferred soil: {self.crop_data['soil_preference']}",
+                        "Drainage requirements: Moderate",
+                        "Organic matter content: >2%"
                     ]),
-                    ("HARVESTING", [
-                        "Harvest when crop reaches maturity",
-                        "Use proper harvesting techniques",
-                        "Store in appropriate conditions"
+                    ("GROWING SEASON", [
+                        f"Best planting time: {self.crop_data['growing_season']}",
+                        "Duration: 3-6 months",
+                        "Crop rotation: Annual"
+                    ]),
+                    ("YIELD PER ACRE", [
+                        "Average yield: 2-3 tons",
+                        "Harvest index: 0.4-0.5",
+                        "Yield factors: Proper irrigation and fertilization"
+                    ]),
+                    ("MARKET PRICE", [
+                        "Current price: $300-$500/ton",
+                        "Price trends: Seasonal variations",
+                        "Market demand: High"
+                    ]),
+                    ("MATURITY DAY", [
+                        "Days to maturity: 100-120 days",
+                        "Growth stages: Vegetative, reproductive, ripening",
+                        "Harvest window: 7-10 days"
+                    ]),
+                    ("WATER REQUIREMENT", [
+                        self.crop_data["water_requirements"],
+                        "Irrigation frequency: Weekly",
+                        "Water depth: 5-10 cm"
+                    ]),
+                    ("NUTRIENT RECOMMENDATION", [
+                        "NPK ratio: 4:2:1",
+                        "Micronutrients: Zinc, Iron",
+                        "Application timing: During tillering"
+                    ]),
+                    ("PEST & DISEASE INFORMATION", [
+                        "Common pests: Stem borers, leaf folders",
+                        "Diseases: Blast, bacterial blight",
+                        "Prevention: Crop rotation, resistant varieties"
                     ])
                 ])
             ]
@@ -615,18 +816,6 @@ class CropRecommendationResult(QWidget):
                 else:
                     f.write(f"{section[1]}\n")
                 f.write("\n")
-    
-    def share_recommendation(self):
-        """Share the recommendation via email or messaging"""
-        QMessageBox.information(
-            self,
-            "Share Recommendation",
-            "This feature would connect to email/messaging services to share your crop recommendation.\n\n"
-            "In a full implementation, it would:\n"
-            "1. Generate a shareable link\n"
-            "2. Open email client with prefilled content\n"
-            "3. Provide social media sharing options"
-        )
 
 # Sample crop database
 CROP_DATABASE = {
@@ -653,5 +842,5 @@ if __name__ == "__main__":
     window = CropRecommendationResult(crop_name="rice", crop_data=CROP_DATABASE["rice"])
     window.setWindowTitle("Crop Recommendation System")
     window.resize(1000, 700)
-    window.showMaximized()
+    window.show()
     sys.exit(app.exec())

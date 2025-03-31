@@ -3,7 +3,7 @@ import requests  # For API calls
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QFrame, QGraphicsDropShadowEffect, QLineEdit
+    QHeaderView, QFrame, QGraphicsDropShadowEffect,QMessageBox, QLineEdit
 )
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
@@ -63,10 +63,36 @@ class MarketPriceWindow(QMainWindow):
         main_widget.setGraphicsEffect(shadow)
 
         main_layout = QVBoxLayout(main_widget)
-        main_layout.setContentsMargins(30, 30, 30, 30)
-        main_layout.setSpacing(25)
+        main_layout.setContentsMargins(20, 20, 20, 20)  # Minimal external margins
+        main_layout.setSpacing(15)  # Minimal spacing between widgets
 
         # ------------------- Header -------------------
+        header_layout = QHBoxLayout()
+        
+        # Add back button
+        self.back_btn = QPushButton("← Back")
+        self.back_btn.setFont(QFont("Segoe UI", 10))
+        self.back_btn.setFixedSize(80, 30)
+        self.back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2b8a3e;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2f9e44;
+            }
+            QPushButton:pressed {
+                background-color: #248232;
+            }
+        """)
+        self.back_btn.setToolTip("Go back to previous screen")
+        self.back_btn.clicked.connect(self.go_back)
+        header_layout.addWidget(self.back_btn)
+        header_layout.addStretch()
+
         header_label = QLabel("🌾 Crop Market Price 📊")
         header_label.setStyleSheet("""
             QLabel {
@@ -79,7 +105,10 @@ class MarketPriceWindow(QMainWindow):
             }
         """)
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(header_label)
+        header_layout.addWidget(header_label)
+        header_layout.addStretch()
+        
+        main_layout.addLayout(header_layout)
 
         # ------------------- Crop & Unit Selection -------------------
         selection_layout = QHBoxLayout()
@@ -161,8 +190,7 @@ class MarketPriceWindow(QMainWindow):
         market_layout.addWidget(self.market_input)
 
         location_layout.addLayout(state_layout)
-        location_layout.addLayout(district_layout)
-        location_layout.addLayout(market_layout)
+        
         main_layout.addLayout(location_layout)
 
         # ------------------- Summary Cards -------------------
@@ -186,6 +214,19 @@ class MarketPriceWindow(QMainWindow):
         self.district_input.textChanged.connect(self.populate_table)
         self.market_input.textChanged.connect(self.populate_table)
         self.unit_dropdown.currentIndexChanged.connect(self.update_unit_selection)
+
+    def go_back(self):
+        """Handle back button click"""
+        reply = QMessageBox.question(
+            self, 'Confirm Exit',
+            'Are you sure you want to go back?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Close the current window
+            self.close()
 
     # ----------------------------------------------------------------
     #                           UI HELPERS
@@ -575,5 +616,5 @@ class MarketPriceWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MarketPriceWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())

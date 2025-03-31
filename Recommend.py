@@ -108,7 +108,7 @@ class CropRecommendationApp(QWidget):
 
     def init_ui(self):
         self.setWindowTitle("FieldBuddy: SmartCrop Advisor for Sustainable Farming")
-        self.setWindowIcon(QIcon("leaf.png"))
+        self.setWindowIcon(QIcon(r"D:\Project\new\FieldBuddyLOGO.jpg"))
         self.setGeometry(100, 100, 800, 700)
 
         main_layout = QVBoxLayout()
@@ -143,7 +143,7 @@ class CropRecommendationApp(QWidget):
         
         # Add icon and title
         icon_label = QLabel()
-        icon_label.setPixmap(QIcon("D:\\Project\\new\\leaf.png").pixmap(40, 40))
+        icon_label.setPixmap(QIcon("D:\\Project\\new\\FieldBuddyLOGO.jpg").pixmap(40, 40))
         header.addWidget(icon_label)
         
         title = QLabel("FieldBuddy!!!")

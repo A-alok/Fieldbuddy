@@ -7,6 +7,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QBrush, QPalette, QResizeEvent, QGuiApplication
 import subprocess
+from Recommend import CropRecommendationApp
+from detail import CropRecommendationResult
+from weather import MainWindow
+from Chatbot import ChatbotApp
+from marketPrice import MarketPriceWindow
 
 class HomeWindow(QMainWindow):
     def __init__(self, username=None):
@@ -80,7 +85,7 @@ class HomeWindow(QMainWindow):
         chatbot_circle_size = int(80 * min(width_scale, height_scale))
         font_size = int(24 * min(width_scale, height_scale))
 
-        self.logo_circle = self.createCircleLabel(logo_size, "rgba(255, 255, 255, 0.7)", "#228B22", r"D:\Project\new\leaf.png")
+        self.logo_circle = self.createCircleLabel(logo_size, "rgba(255, 255, 255, 0.7)", "#228B22", r"D:\\Project\\new\FieldBuddyLOGO.png")
         self.fieldbuddy_label = self.createLabel("FieldBuddy", font_size, "#228B22", bold=True)
         self.user_circle = self.createClickableCircle(user_circle_size, "rgba(255, 255, 255, 0.7)", "#228B22", r"D:\Project\new\profile-png-icon-2.jpg", self.onProfileClicked)
         
@@ -310,23 +315,27 @@ class HomeWindow(QMainWindow):
         return button
 
     def onProfileClicked(self):
-        # Launch profile menu dropdown with the current username
         subprocess.Popen([sys.executable, "profile_dropdown.py", self.user_data["username"]])
 
     def onRecommendationClicked(self):
-        print("Recommendation clicked!")
+        self.recommendation_window = CropRecommendationApp()
+        self.recommendation_window.showMaximized()
 
     def onWeatherClicked(self):
-        print("Weather clicked!")
+        self.weather_window = MainWindow()
+        self.weather_window.showMaximized()
 
     def onMarketPriceClicked(self):
-        print("Market Price clicked!")
+        self.market_price_window = MarketPriceWindow()
+        self.market_price_window.showMaximized()
 
     def onCropDetailsClicked(self):
-        print("Crop Details clicked!")
+        self.crop_details_window = CropRecommendationResult()
+        self.crop_details_window.showMaximized()
 
     def onChatbotClicked(self):
-        print("Chatbot clicked!")
+        self.chatbot_window = ChatbotApp()
+        self.chatbot_window.showMaximized()
 
 # For compatibility with login2.py
 class FieldBuddyDashboard(HomeWindow):
@@ -342,5 +351,5 @@ if __name__ == "__main__":
         username = sys.argv[1]
         
     window = HomeWindow(username)
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())
