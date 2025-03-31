@@ -1,27 +1,116 @@
 import sys
 import os
+import pandas as pd
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QTabWidget, QGroupBox, QScrollArea, QFrame,
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QLineEdit, QSizePolicy
 )
-from PyQt6.QtGui import QFont, QPixmap, QIcon
+from PyQt6.QtGui import QFont, QPixmap, QIcon, QPainter, QPainterPath
 from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import QRectF  # Add this at the top with other imports
 
-# Global reference for file paths
-file = __file__
-
+class RoundedImageLabel(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.radius = 5.0  # Make this a float
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        path = QPainterPath()
+        # Convert QRect to QRectF
+        path.addRoundedRect(QRectF(self.rect()), self.radius, self.radius)
+        
+        if hasattr(self, 'original_pixmap') and self.original_pixmap:
+            scaled_pixmap = self.original_pixmap.scaled(
+                self.size(), 
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            painter.setClipPath(path)
+            painter.drawPixmap(self.rect(), scaled_pixmap)
+        else:
+            super().paintEvent(event)
 class CropRecommendationResult(QWidget):
-    def __init__(self, parent=None, crop_name=None, crop_data=None):
+    def __init__(self, parent=None, crop_name=None):
         super().__init__(parent)
         self.parent = parent
-        self.crop_name = crop_name or "rice"  # Default crop if none provided
-        self.crop_data = crop_data or self.get_default_crop_data()
-        self.init_ui()  # Corrected method name
-    
+        self.crop_name = crop_name or "Rice"  # Default crop if none provided
+        self.crop_data = self.get_crop_data()
+        self.init_ui()
+    def format_tips_text(self, tips_text):
+        """Convert dot-separated tips into bullet points"""
+        if not tips_text:
+            return ""
+        
+        # Split by "." and remove empty items
+        tips = [tip.strip() for tip in tips_text.split(".") if tip.strip()]
+        
+        # Add bullet points and join with newlines
+        bullet_points = []
+        for tip in tips:
+            # Capitalize first letter of each tip
+            if tip:
+                tip = tip[0].upper() + tip[1:] if tip else tip
+                bullet_points.append(f"• {tip}")
+        
+        return "\n".join(bullet_points)
     def init_ui(self):
         """Initialize the user interface"""
-        # Main layout
+        self.setStyleSheet("""
+            QWidget {
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #f8f9fa, stop:1 #e6f4ea);
+            }
+            QGroupBox {
+                border: 2px solid #e9ecef;
+                border-radius: 8px;
+                margin-top: 15px;
+                padding-top: 20px;
+                background-color: white;   
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                color: #2b8a3e;
+                font-weight: bold;
+            }
+            QLabel {
+                color: #343a40;
+                font-size: 14px;
+            }
+            QLineEdit {
+                padding: 10px;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                font-size: 14px;
+                color: rgb(41, 33, 33);
+            }
+            QLineEdit:focus {
+                border: 2px solid #2b8a3e;
+            }
+            QPushButton {
+                background-color: #2b8a3e;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 6px;
+                font-size: 15px;
+                font-weight: bold;
+                min-width: 200px;
+            }
+            QPushButton:hover {
+                background-color: #2f9e44;
+            }
+            QPushButton:pressed {
+                background-color: #248232;
+            }
+        """)
+        
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
@@ -36,6 +125,7 @@ class CropRecommendationResult(QWidget):
                 font-weight: bold;
                 text-align: left;
                 padding: 8px 0;
+                min-width: 0;
             }
             QPushButton:hover {
                 color: #2f9e44;
@@ -69,13 +159,12 @@ class CropRecommendationResult(QWidget):
         header_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         header_label.setStyleSheet("color: #2b8a3e;")
         
-        crop_name_label = QLabel(self.crop_name.title())
+        crop_name_label = QLabel(self.crop_name)
         crop_name_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         crop_name_label.setStyleSheet("color: #2b8a3e;")
         
-        description_label = QLabel(self.crop_data["description"])
+        description_label = QLabel(self.crop_data.get("Description", ""))
         description_label.setWordWrap(True)
-        description_label.setStyleSheet("color: #495057;")
         
         recommendation_layout.addWidget(header_label)
         recommendation_layout.addWidget(crop_name_label)
@@ -87,20 +176,6 @@ class CropRecommendationResult(QWidget):
         # Crop requirements
         requirements_box = QGroupBox("Crop Requirements")
         requirements_box.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        requirements_box.setStyleSheet("""
-            QGroupBox {
-                background-color: white;
-                border: 1px solid #e9ecef;
-                border-radius: 8px;
-                margin-top: 15px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-                color: #343a40;
-            }
-        """)
         
         requirements_layout = QVBoxLayout()
         requirements_layout.setSpacing(15)
@@ -113,8 +188,7 @@ class CropRecommendationResult(QWidget):
         temp_info = QVBoxLayout()
         temp_title = QLabel("Temperature")
         temp_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        temp_value = QLabel(self.crop_data["optimal_temperature"])
-        temp_value.setStyleSheet("color: #495057;")
+        temp_value = QLabel(self.crop_data.get("Temperature Range", ""))
         
         temp_info.addWidget(temp_title)
         temp_info.addWidget(temp_value)
@@ -131,8 +205,7 @@ class CropRecommendationResult(QWidget):
         water_info = QVBoxLayout()
         water_title = QLabel("Water Requirements")
         water_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        water_value = QLabel(self.crop_data["water_requirements"])
-        water_value.setStyleSheet("color: #495057;")
+        water_value = QLabel(self.crop_data.get("Water Requirement", ""))
         
         water_info.addWidget(water_title)
         water_info.addWidget(water_value)
@@ -149,8 +222,7 @@ class CropRecommendationResult(QWidget):
         season_info = QVBoxLayout()
         season_title = QLabel("Growing Season")
         season_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        season_value = QLabel(self.crop_data["growing_season"])
-        season_value.setStyleSheet("color: #495057;")
+        season_value = QLabel(self.crop_data.get("Growing Season", ""))
         
         season_info.addWidget(season_title)
         season_info.addWidget(season_value)
@@ -168,16 +240,14 @@ class CropRecommendationResult(QWidget):
         # Soil preference
         soil_title = QLabel("Soil Preference")
         soil_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        soil_value = QLabel(self.crop_data["soil_preference"])
+        soil_value = QLabel(self.crop_data.get("Soil Type and pH", ""))
         soil_value.setWordWrap(True)
-        soil_value.setStyleSheet("color: #495057;")
         
         # Nutritional value
         nutrition_title = QLabel("Nutritional Value")
         nutrition_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        nutrition_value = QLabel(self.crop_data["nutritional_value"])
+        nutrition_value = QLabel(self.crop_data.get("Nutritional Information", ""))
         nutrition_value.setWordWrap(True)
-        nutrition_value.setStyleSheet("color: #495057;")
         
         # Add all to requirements layout
         requirements_layout.addLayout(temp_layout)
@@ -213,6 +283,7 @@ class CropRecommendationResult(QWidget):
                 border-top-right-radius: 4px;
                 padding: 8px 16px;
                 margin-right: 2px;
+                color: black;
             }
             QTabBar::tab:selected {
                 background-color: white;
@@ -223,39 +294,58 @@ class CropRecommendationResult(QWidget):
         # Image tab
         image_widget = QWidget()
         image_layout = QVBoxLayout()
+        image_layout.setContentsMargins(10, 10, 10, 10)
+        image_layout.setSpacing(10)
         
-        # Load image from local storage
-        image_path = self.get_crop_image_path()
-        image_label = QLabel()
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        if os.path.exists(image_path):
-            pixmap = QPixmap(image_path)
-            pixmap = pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            image_label.setPixmap(pixmap)
-        else:
-            image_label.setText("Image not available")
-            image_label.setStyleSheet("""
-                background-color: #f8f9fa;
-                padding: 100px;
-                border-radius: 8px;
-                color: #adb5bd;
-                font-size: 16px;
-            """)
-        
-        crop_badge = QLabel(self.crop_data["growing_season"])
-        crop_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        crop_badge.setStyleSheet("""
-            background-color: #e6f4ea;
-            color: #2b8a3e;
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-weight: bold;
-            margin: 10px;
+        # Load image based on crop name
+        self.image_label = RoundedImageLabel()
+        self.image_label.setStyleSheet("""
+            QLabel {
+                border: none;
+                margin: 0;
+                padding: 0;
+                background-color: transparent;
+            }
         """)
         
-        image_layout.addWidget(image_label)
-        image_layout.addWidget(crop_badge, alignment=Qt.AlignmentFlag.AlignCenter)
+        image_path = self.get_crop_image_path()
+        if image_path and os.path.exists(image_path):
+            pixmap = QPixmap(image_path)
+            if not pixmap.isNull():
+                self.image_label.original_pixmap = pixmap
+                self.update_image_size()
+            else:
+                self.image_label.setText("Invalid image file")
+        else:
+            self.image_label.setText("Image not available")
+        
+        # Add growing tips box below the image
+        tips_box = QGroupBox("Growing Tips")
+        tips_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #e6f4ea;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+                padding: 15px;
+                margin-top: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                color: #2b8a3e;
+            }
+        """)
+        
+        tips_layout = QVBoxLayout()
+        tips_text = self.format_tips_text(self.crop_data.get("Tips", ""))
+        tips_content = QLabel(tips_text)
+        tips_content.setWordWrap(True)
+        tips_layout.addWidget(tips_content)
+        tips_box.setLayout(tips_layout)
+        
+        image_layout.addWidget(self.image_label, 1)
+        image_layout.addWidget(tips_box)
         image_widget.setLayout(image_layout)
         
         # Growing tips tab
@@ -263,106 +353,243 @@ class CropRecommendationResult(QWidget):
         tips_widget.setWidgetResizable(True)
         tips_content = QWidget()
         tips_layout = QVBoxLayout()
+        tips_layout.setContentsMargins(10, 10, 10, 10)
+        tips_layout.setSpacing(15)
         
-        tips_title = QLabel(f"Growing Tips for {self.crop_name.title()}")
+        tips_title = QLabel(f"Growing Details for {self.crop_name}")
         tips_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         tips_layout.addWidget(tips_title)
-        
-        # Planting tips
-        planting_box = QGroupBox()
-        planting_box.setStyleSheet("""
+
+        # Climate
+        climate_box = QGroupBox()
+        climate_box.setStyleSheet("""
             QGroupBox {
                 background-color: #e7f5ff;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        planting_layout = QVBoxLayout()
-        planting_title = QLabel("Planting")
-        planting_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        planting_title.setStyleSheet("color: #1971c2;")
-        
-        planting_tips = QLabel(f"""
-        • Plant during {self.crop_data["growing_season"]} for optimal growth
-        • Ensure soil pH is appropriate for {self.crop_name}
-        • Space plants according to variety recommendations
+        climate_layout = QVBoxLayout()
+        climate_title = QLabel("Climate")
+        climate_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        climate_title.setStyleSheet("color: #1971c2;")
+        climate_tips = QLabel(f"""
+        • Optimal temperature: {self.crop_data.get("Temperature Range", "")}
+        • Humidity requirements: Moderate to high
+        • Frost sensitivity: Not frost tolerant
         """)
-        planting_tips.setWordWrap(True)
-        
-        planting_layout.addWidget(planting_title)
-        planting_layout.addWidget(planting_tips)
-        planting_box.setLayout(planting_layout)
-        
-        # Care tips
-        care_box = QGroupBox()
-        care_box.setStyleSheet("""
+        climate_tips.setWordWrap(True)
+        climate_layout.addWidget(climate_title)
+        climate_layout.addWidget(climate_tips)
+        climate_box.setLayout(climate_layout)
+        tips_layout.addWidget(climate_box)
+
+        # Soil Type
+        soil_box = QGroupBox()
+        soil_box.setStyleSheet("""
             QGroupBox {
                 background-color: #e6f4ea;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        care_layout = QVBoxLayout()
-        care_title = QLabel("Care & Maintenance")
-        care_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        care_title.setStyleSheet("color: #2b8a3e;")
-        
-        care_tips = QLabel(f"""
-        • Water according to {self.crop_data["water_requirements"].lower()} needs
-        • Monitor for pests and diseases regularly
-        • Apply appropriate fertilizers based on soil test results
+        soil_layout = QVBoxLayout()
+        soil_title = QLabel("Soil Type")
+        soil_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        soil_title.setStyleSheet("color: #2b8a3e;")
+        soil_tips = QLabel(f"""
+        • Preferred soil: {self.crop_data.get("Soil Type and pH", "")}
+        • Drainage requirements: Moderate
+        • Organic matter content: >2%
         """)
-        care_tips.setWordWrap(True)
-        
-        care_layout.addWidget(care_title)
-        care_layout.addWidget(care_tips)
-        care_box.setLayout(care_layout)
-        
-        # Harvesting tips
-        harvest_box = QGroupBox()
-        harvest_box.setStyleSheet("""
+        soil_tips.setWordWrap(True)
+        soil_layout.addWidget(soil_title)
+        soil_layout.addWidget(soil_tips)
+        soil_box.setLayout(soil_layout)
+        tips_layout.addWidget(soil_box)
+
+        # Growing Season
+        season_box = QGroupBox()
+        season_box.setStyleSheet("""
             QGroupBox {
                 background-color: #fff9db;
                 border-radius: 8px;
                 border: none;
                 padding: 15px;
-                margin-top: 10px;
             }
         """)
-        
-        harvest_layout = QVBoxLayout()
-        harvest_title = QLabel("Harvesting")
-        harvest_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        harvest_title.setStyleSheet("color: #e67700;")
-        
-        harvest_tips = QLabel("""
-        • Harvest when the crop reaches maturity
-        • Use proper harvesting techniques to avoid damage
-        • Store in appropriate conditions to maintain freshness
+        season_layout = QVBoxLayout()
+        season_title = QLabel("Growing Season")
+        season_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        season_title.setStyleSheet("color: #e67700;")
+        season_tips = QLabel(f"""
+        • Best planting time: {self.crop_data.get("Growing Season", "")}
+        • Duration: 3-6 months
+        • Crop rotation: Annual
         """)
-        harvest_tips.setWordWrap(True)
-        
-        harvest_layout.addWidget(harvest_title)
-        harvest_layout.addWidget(harvest_tips)
-        harvest_box.setLayout(harvest_layout)
-        
-        tips_layout.addWidget(planting_box)
-        tips_layout.addWidget(care_box)
-        tips_layout.addWidget(harvest_box)
-        tips_layout.addStretch()
+        season_tips.setWordWrap(True)
+        season_layout.addWidget(season_title)
+        season_layout.addWidget(season_tips)
+        season_box.setLayout(season_layout)
+        tips_layout.addWidget(season_box)
+
+        # Yield Per Acre
+        yield_box = QGroupBox()
+        yield_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #e6e6ff;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        yield_layout = QVBoxLayout()
+        yield_title = QLabel("Yield Per Acre")
+        yield_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        yield_title.setStyleSheet("color: #4a47a3;")
+        yield_tips = QLabel("""
+        • Average yield: 2-3 tons
+        • Harvest index: 0.4-0.5
+        • Yield factors: Proper irrigation and fertilization
+        """)
+        yield_tips.setWordWrap(True)
+        yield_layout.addWidget(yield_title)
+        yield_layout.addWidget(yield_tips)
+        yield_box.setLayout(yield_layout)
+        tips_layout.addWidget(yield_box)
+
+        # Market Price
+        price_box = QGroupBox()
+        price_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #fde2ff;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        price_layout = QVBoxLayout()
+        price_title = QLabel("Market Price")
+        price_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        price_title.setStyleSheet("color: #8e44ad;")
+        price_tips = QLabel(f"""
+        • Current price: ${self.crop_data.get("Market Value", "")}
+        • Price trends: Seasonal variations
+        • Market demand: High
+        """)
+        price_tips.setWordWrap(True)
+        price_layout.addWidget(price_title)
+        price_layout.addWidget(price_tips)
+        price_box.setLayout(price_layout)
+        tips_layout.addWidget(price_box)
+
+        # Maturity Day
+        maturity_box = QGroupBox()
+        maturity_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #ffe8cc;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        maturity_layout = QVBoxLayout()
+        maturity_title = QLabel("Maturity Day")
+        maturity_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        maturity_title.setStyleSheet("color: #d35400;")
+        maturity_tips = QLabel(f"""
+        • Days to maturity: {self.crop_data.get("Maturity Timeline", "")}
+        • Growth stages: Vegetative, reproductive, ripening
+        • Harvest window: 7-10 days
+        """)
+        maturity_tips.setWordWrap(True)
+        maturity_layout.addWidget(maturity_title)
+        maturity_layout.addWidget(maturity_tips)
+        maturity_box.setLayout(maturity_layout)
+        tips_layout.addWidget(maturity_box)
+
+        # Water Requirement
+        water_box = QGroupBox()
+        water_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #d0f0fd;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        water_layout = QVBoxLayout()
+        water_title = QLabel("Water Requirement")
+        water_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        water_title.setStyleSheet("color: #1a73e8;")
+        water_tips = QLabel(f"""
+        • {self.crop_data.get("Water Requirement", "")}
+        • Irrigation frequency: Weekly
+        • Water depth: 5-10 cm
+        """)
+        water_tips.setWordWrap(True)
+        water_layout.addWidget(water_title)
+        water_layout.addWidget(water_tips)
+        water_box.setLayout(water_layout)
+        tips_layout.addWidget(water_box)
+
+        # Nutrient Recommendation
+        nutrient_box = QGroupBox()
+        nutrient_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #d4f7d4;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        nutrient_layout = QVBoxLayout()
+        nutrient_title = QLabel("Nutrient Recommendation")
+        nutrient_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        nutrient_title.setStyleSheet("color: #2e7d32;")
+        nutrient_tips = QLabel(f"""
+        • NPK ratio: {self.crop_data.get("Nutrient Requirement", "")}
+        • Micronutrients: Zinc, Iron
+        • Application timing: During tillering
+        """)
+        nutrient_tips.setWordWrap(True)
+        nutrient_layout.addWidget(nutrient_title)
+        nutrient_layout.addWidget(nutrient_tips)
+        nutrient_box.setLayout(nutrient_layout)
+        tips_layout.addWidget(nutrient_box)
+
+        # Pest & Disease Information
+        pest_box = QGroupBox()
+        pest_box.setStyleSheet("""
+            QGroupBox {
+                background-color: #ffe5e5;
+                border-radius: 8px;
+                border: none;
+                padding: 15px;
+            }
+        """)
+        pest_layout = QVBoxLayout()
+        pest_title = QLabel("Pest & Disease Information")
+        pest_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        pest_title.setStyleSheet("color: #c62828;")
+        pest_tips = QLabel(f"""
+        • Common pests: {self.crop_data.get("Pest and Disease Awareness", "")}
+        • Prevention: Crop rotation, resistant varieties
+        """)
+        pest_tips.setWordWrap(True)
+        pest_layout.addWidget(pest_title)
+        pest_layout.addWidget(pest_tips)
+        pest_box.setLayout(pest_layout)
+        tips_layout.addWidget(pest_box)
         
         tips_content.setLayout(tips_layout)
         tips_widget.setWidget(tips_content)
         
         # Add tabs
         tabs.addTab(image_widget, "Crop Image")
-        tabs.addTab(tips_widget, "Growing Tips")
+        tabs.addTab(tips_widget, "Crop Details")
         
         right_column.addWidget(tabs)
         
@@ -372,86 +599,158 @@ class CropRecommendationResult(QWidget):
         
         main_layout.addLayout(content_layout)
         
-        # Add save/share buttons
+        # Add save button
         button_layout = QHBoxLayout()
         
         save_button = QPushButton("Save Recommendation")
         save_button.setIcon(QIcon.fromTheme("document-save"))
-        save_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2b8a3e;
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                border-radius: 6px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2f9e44;
-            }
-        """)
         save_button.clicked.connect(self.save_recommendation)
-        
-        share_button = QPushButton("Share Results")
-        share_button.setIcon(QIcon.fromTheme("document-share"))
-        share_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1971c2;
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                border-radius: 6px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1c7ed6;
-            }
-        """)
-        share_button.clicked.connect(self.share_recommendation)
         
         button_layout.addStretch()
         button_layout.addWidget(save_button)
-        button_layout.addWidget(share_button)
         button_layout.addStretch()
         
         main_layout.addLayout(button_layout)
         
         self.setLayout(main_layout)
     
+    def update_image_size(self):
+        """Update the image size to fit the container width"""
+        if hasattr(self.image_label, 'original_pixmap') and self.image_label.original_pixmap:
+            container_width = self.image_label.width() - 20  # Subtract margins
+            if container_width > 0:
+                scaled_pixmap = self.image_label.original_pixmap.scaled(
+                    container_width, 
+                    int(container_width / self.image_label.original_pixmap.width() * self.image_label.original_pixmap.height()),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.image_label.setPixmap(scaled_pixmap)
+    
+    def resizeEvent(self, event):
+        """Handle window resize events to update image size"""
+        super().resizeEvent(event)
+        self.update_image_size()
+    
+    def get_crop_data(self):
+        """Load crop data from CSV file"""
+        try:
+            # Load the CSV file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            csv_path = os.path.join(current_dir, "crops_details_data_final.csv")
+            
+            if not os.path.exists(csv_path):
+                return self.get_default_crop_data()
+                
+            # Read the CSV file
+            df = pd.read_csv(csv_path)
+            
+            # Clean the data by stripping whitespace from column names
+            df.columns = df.columns.str.strip()
+            
+            # Find the row with the matching crop name
+            crop_row = df[df['Crop Name'].str.lower() == self.crop_name.lower()]
+            
+            if crop_row.empty:
+                return self.get_default_crop_data()
+                
+            crop_row = crop_row.iloc[0]
+            
+            # Create a dictionary mapping section titles to CSV columns
+            section_mapping = {
+                "Description": "Description",
+                "Temperature Range": "Temperature Range",
+                "Water Requirement": "Water Requirement",
+                "Growing Season": "Growing Season",
+                "Soil Type and pH": "Soil Type and pH",
+                "Nutritional Information": "Nutritional Information",
+                "Tips": "Tips",
+                "Climate": "Climate Condition",
+                "Soil Type": "Soil Requirement",
+                "Market Value": "Market Value",
+                "Maturity Timeline": "Maturity Timeline",
+                "Nutrient Requirement": "Nutrient Requirement",
+                "Pest and Disease Awareness": "Pest and Disease Awareness",
+                "Image Path or URL": "Image Path or URL"
+            }
+            
+            # Extract data
+            crop_data = {}
+            for section, csv_column in section_mapping.items():
+                crop_data[section] = str(crop_row.get(csv_column, ""))
+            
+            return crop_data
+            
+        except Exception as e:
+            print(f"Error loading crop data: {e}")
+            return self.get_default_crop_data()
+    
     def get_default_crop_data(self):
         """Return default crop data if none is provided"""
         return {
-            "description": "Rice is a staple food crop for more than half of the world's population. It's grown in flooded fields known as rice paddies.",
-            "growing_season": "Summer to early autumn",
-            "water_requirements": "High (flooded conditions)",
-            "soil_preference": "Clay soils that hold water well, pH 5.5-6.5",
-            "optimal_temperature": "20-35°C during growing season",
-            "nutritional_value": "Good source of carbohydrates, contains some protein, vitamins and minerals"
+            "Description": "Rice is a staple food crop for more than half of the world's population. It's grown in flooded fields known as rice paddies.",
+            "Temperature Range": "20-35°C during growing season",
+            "Water Requirement": "High (flooded conditions)",
+            "Growing Season": "Summer to early autumn",
+            "Soil Type and pH": "Clay soils that hold water well, pH 5.5-6.5",
+            "Nutritional Information": "Good source of carbohydrates, contains some protein, vitamins and minerals",
+            "Tips": "• Prepare soil properly before planting\n• Maintain adequate spacing between plants\n• Monitor water levels regularly\n• Apply fertilizers according to soil test results",
+            "Climate": "Tropical",
+            "Soil Type": "Clay",
+            "Market Value": "3000",
+            "Maturity Timeline": "100-120 days",
+            "Nutrient Requirement": "High (1500 mm)",
+            "Pest and Disease Awareness": "Common pests: Rice blast, Brown spot",
+            "Image Path or URL": ""
         }
     
     def get_crop_image_path(self):
-        """Get the path to the crop image in local storage"""
-        base_paths = [
-            os.path.join(os.path.dirname(os.path.abspath(file)), "images", "crops"),
-            os.path.join(os.path.dirname(os.path.abspath(file)), "assets", "crops"),
+        """Get the path to the crop image based on crop name from common directories"""
+        # First try to get the image path from the CSV data if available
+        csv_image_path = self.crop_data.get("Image Path or URL", "")
+        if csv_image_path and os.path.exists(csv_image_path):
+            return csv_image_path
+        
+        # List of common directories where crop images might be stored
+        search_dirs = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__))),  # Current directory
+            os.path.join(os.path.dirname(os.path.abspath(__file__))), "crop_images",
+            os.path.join(os.path.dirname(os.path.abspath(__file__))), "images",
+            os.path.join(os.path.dirname(os.path.abspath(__file__))), "assets",
             os.path.join(os.path.expanduser("~"), "FieldBuddy", "crops")
         ]
         
-        for base_path in base_paths:
-            for ext in ['.jpg', '.jpeg', '.png']:
-                img_path = os.path.join(base_path, f"{self.crop_name.lower()}{ext}")
+        # List of possible image file extensions
+        extensions = ['.jpg', '.jpeg', '.png', '.gif']
+        
+        # Clean the crop name for filename matching
+        clean_name = self.crop_name.lower().replace(" ", "-").replace("(", "").replace(")", "")
+        
+        # Search for matching image files
+        for directory in search_dirs:
+            if not os.path.exists(directory):
+                continue
+                
+            for ext in extensions:
+                # Try exact match first
+                img_path = os.path.join(directory, f"{clean_name}{ext}")
                 if os.path.exists(img_path):
                     return img_path
+                    
+                # Try partial matches (e.g., "black-gram" vs "blackgram")
+                for file in os.listdir(directory):
+                    if file.lower().startswith(clean_name.replace("-", "")) and file.lower().endswith(ext):
+                        return os.path.join(directory, file)
         
-        return os.path.join(os.path.dirname(os.path.abspath(file)), "images", "placeholder.png")
+        # If no image found, return a placeholder
+        placeholder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "placeholder.png")
+        return placeholder_path if os.path.exists(placeholder_path) else ""
     
     def go_back(self):
         """Return to the main form"""
         if self.parent:
             self.parent.show_main_form()
-        self.hide()
+        self.close()
     
     def save_recommendation(self):
         """Save the recommendation as a PDF or text file"""
@@ -480,14 +779,15 @@ class CropRecommendationResult(QWidget):
                     "Error",
                     f"Failed to save recommendation: {str(e)}"
                 )
-    
+        
     def save_as_pdf(self, file_path):
         """Save recommendation as PDF"""
         try:
             from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
+            from reportlab.lib.units import inch
             
             doc = SimpleDocTemplate(file_path, pagesize=letter)
             styles = getSampleStyleSheet()
@@ -507,39 +807,96 @@ class CropRecommendationResult(QWidget):
                 spaceAfter=6
             )
             
+            company_style = ParagraphStyle(
+                'CompanyStyle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                textColor=colors.darkgreen,
+                spaceAfter=12,
+                alignment=1  # Center aligned
+            )
+            
             # Build content
             content = []
-            content.append(Paragraph(f"Crop Recommendation: {self.crop_name.title()}", title_style))
+            
+            # Add logo and header
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo.jpg")
+            if os.path.exists(logo_path):
+                logo = Image(logo_path, width=1.5*inch, height=1.5*inch)
+                # Create a table to center the logo and text
+                header_table = Table([
+                    [logo, Paragraph("FieldBuddy", company_style)],
+                ], colWidths=[2*inch, 4*inch])
+                header_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                content.append(header_table)
+            else:
+                content.append(Paragraph("FieldBuddy", company_style))
+            
+            content.append(Spacer(1, 24))
+            content.append(Paragraph(f"Crop Recommendation: {self.crop_name}", title_style))
             content.append(Spacer(1, 12))
             
             # Add all sections
             sections = [
-                ("Description", self.crop_data["description"]),
+                ("Description", self.crop_data.get("Description", "")),
                 ("Growing Conditions", [
-                    f"• Growing Season: {self.crop_data['growing_season']}",
-                    f"• Water Requirements: {self.crop_data['water_requirements']}",
-                    f"• Optimal Temperature: {self.crop_data['optimal_temperature']}",
-                    f"• Soil Preference: {self.crop_data['soil_preference']}"
+                    f"• Growing Season: {self.crop_data.get('Growing Season', '')}",
+                    f"• Water Requirements: {self.crop_data.get('Water Requirement', '')}",
+                    f"• Optimal Temperature: {self.crop_data.get('Temperature Range', '')}",
+                    f"• Soil Preference: {self.crop_data.get('Soil Type and pH', '')}"
                 ]),
-                ("Nutritional Value", self.crop_data["nutritional_value"]),
-                ("Growing Tips", [
-                    ("Planting", [
-                        f"• Plant during {self.crop_data['growing_season']}",
-                        f"• Ensure soil pH is appropriate for {self.crop_name}",
-                        "• Space plants properly"
+                ("Nutritional Value", self.crop_data.get("Nutritional Information", "")),
+                ("Crop Details", [
+                    ("Climate", [
+                        f"• Optimal temperature: {self.crop_data.get('Temperature Range', '')}",
+                        "• Humidity requirements: Moderate to high",
+                        "• Frost sensitivity: Not frost tolerant"
                     ]),
-                    ("Care", [
-                        f"• Water according to {self.crop_data['water_requirements']}",
-                        "• Monitor for pests",
-                        "• Apply appropriate fertilizers"
+                    ("Soil Type", [
+                        f"• Preferred soil: {self.crop_data.get('Soil Type and pH', '')}",
+                        "• Drainage requirements: Moderate",
+                        "• Organic matter content: >2%"
                     ]),
-                    ("Harvesting", [
-                        "• Harvest at maturity",
-                        "• Use proper techniques",
-                        "• Store properly"
+                    ("Growing Season", [
+                        f"• Best planting time: {self.crop_data.get('Growing Season', '')}",
+                        "• Duration: 3-6 months",
+                        "• Crop rotation: Annual"
+                    ]),
+                    ("Market Price", [
+                        f"• Current price: ${self.crop_data.get('Market Value', '')}",
+                        "• Price trends: Seasonal variations",
+                        "• Market demand: High"
+                    ]),
+                    ("Maturity Day", [
+                        f"• Days to maturity: {self.crop_data.get('Maturity Timeline', '')}",
+                        "• Growth stages: Vegetative, reproductive, ripening",
+                        "• Harvest window: 7-10 days"
+                    ]),
+                    ("Water Requirement", [
+                        f"• {self.crop_data.get('Water Requirement', '')}",
+                        "• Irrigation frequency: Weekly",
+                        "• Water depth: 5-10 cm"
+                    ]),
+                    ("Nutrient Recommendation", [
+                        f"• NPK ratio: {self.crop_data.get('Nutrient Requirement', '')}",
+                        "• Micronutrients: Zinc, Iron",
+                        "• Application timing: During tillering"
+                    ]),
+                    ("Pest & Disease Information", [
+                        f"• Common pests: {self.crop_data.get('Pest and Disease Awareness', '')}",
+                        "• Prevention: Crop rotation, resistant varieties"
                     ])
                 ])
             ]
+            
+            tips = self.format_tips_text(self.crop_data.get("Tips", "")).split("\n")
+            content.append(Paragraph("Growing Tips:", heading_style))
+            for tip in tips:
+                content.append(Paragraph(tip, styles['Normal']))
+            content.append(Spacer(1, 12))
             
             for section in sections:
                 content.append(Paragraph(section[0] + ":", heading_style))
@@ -548,7 +905,7 @@ class CropRecommendationResult(QWidget):
                         if isinstance(item, tuple):  # Sub-sections
                             content.append(Paragraph(item[0], styles['Heading3']))
                             for subitem in item[1]:
-                                content.append(Paragraph(subitem, styles['Normal']))
+                                content.append(Paragraph(f"• {subitem}", styles['Normal']))
                         else:
                             content.append(Paragraph(item, styles['Normal']))
                 else:
@@ -567,91 +924,92 @@ class CropRecommendationResult(QWidget):
         except ImportError:
             self.save_as_text(file_path.replace('.pdf', '.txt'))
             raise ImportError("ReportLab not installed. Saved as text instead.")
-    
+
     def save_as_text(self, file_path):
         """Save recommendation as text file"""
         with open(file_path, 'w', encoding='utf-8') as f:
+            # Add FieldBuddy header
+            f.write("="*50 + "\n")
+            f.write(" " * 15 + "FIELD BUDDY" + " " * 15 + "\n")
+            f.write("="*50 + "\n\n")
+            
             f.write(f"CROP RECOMMENDATION: {self.crop_name.upper()}\n")
             f.write("="*50 + "\n\n")
             
             sections = [
-                ("DESCRIPTION", self.crop_data["description"]),
+                ("DESCRIPTION", self.crop_data.get("Description", "")),
                 ("GROWING CONDITIONS", [
-                    f"Growing Season: {self.crop_data['growing_season']}",
-                    f"Water Requirements: {self.crop_data['water_requirements']}",
-                    f"Optimal Temperature: {self.crop_data['optimal_temperature']}",
-                    f"Soil Preference: {self.crop_data['soil_preference']}"
+                    f"Growing Season: {self.crop_data.get('Growing Season', '')}",
+                    f"Water Requirements: {self.crop_data.get('Water Requirement', '')}",
+                    f"Optimal Temperature: {self.crop_data.get('Temperature Range', '')}",
+                    f"Soil Preference: {self.crop_data.get('Soil Type and pH', '')}"
                 ]),
-                ("NUTRITIONAL VALUE", self.crop_data["nutritional_value"]),
-                ("GROWING TIPS", [
-                    ("PLANTING", [
-                        f"Plant during {self.crop_data['growing_season']}",
-                        f"Ensure soil pH is appropriate for {self.crop_name}",
-                        "Space plants properly"
+                ("NUTRITIONAL VALUE", self.crop_data.get("Nutritional Information", "")),
+                ("CROP DETAILS", [
+                    ("CLIMATE", [
+                        f"Optimal temperature: {self.crop_data.get('Temperature Range', '')}",
+                        "Humidity requirements: Moderate to high",
+                        "Frost sensitivity: Not frost tolerant"
                     ]),
-                    ("CARE & MAINTENANCE", [
-                        f"Water according to {self.crop_data['water_requirements']}",
-                        "Monitor for pests and diseases",
-                        "Apply appropriate fertilizers"
+                    ("SOIL TYPE", [
+                        f"Preferred soil: {self.crop_data.get('Soil Type and pH', '')}",
+                        "Drainage requirements: Moderate",
+                        "Organic matter content: >2%"
                     ]),
-                    ("HARVESTING", [
-                        "Harvest when crop reaches maturity",
-                        "Use proper harvesting techniques",
-                        "Store in appropriate conditions"
+                    ("GROWING SEASON", [
+                        f"Best planting time: {self.crop_data.get('Growing Season', '')}",
+                        "Duration: 3-6 months",
+                        "Crop rotation: Annual"
+                    ]),
+                    ("MARKET PRICE", [
+                        f"Current price: ${self.crop_data.get('Market Value', '')}",
+                        "Price trends: Seasonal variations",
+                        "Market demand: High"
+                    ]),
+                    ("MATURITY DAY", [
+                        f"Days to maturity: {self.crop_data.get('Maturity Timeline', '')}",
+                        "Growth stages: Vegetative, reproductive, ripening",
+                        "Harvest window: 7-10 days"
+                    ]),
+                    ("WATER REQUIREMENT", [
+                        self.crop_data.get("Water Requirement", ""),
+                        "Irrigation frequency: Weekly",
+                        "Water depth: 5-10 cm"
+                    ]),
+                    ("NUTRIENT RECOMMENDATION", [
+                        f"NPK ratio: {self.crop_data.get('Nutrient Requirement', '')}",
+                        "Micronutrients: Zinc, Iron",
+                        "Application timing: During tillering"
+                    ]),
+                    ("PEST & DISEASE INFORMATION", [
+                        f"Common pests: {self.crop_data.get('Pest and Disease Awareness', '')}",
+                        "Prevention: Crop rotation, resistant varieties"
                     ])
                 ])
             ]
+            
+            f.write("GROWING TIPS:\n")
+            f.write(self.format_tips_text(self.crop_data.get("Tips", "")) + "\n\n")
             
             for section in sections:
                 f.write(f"{section[0]}:\n")
                 if isinstance(section[1], list):
                     for item in section[1]:
                         if isinstance(item, tuple):  # Sub-sections
-                            f.write(f"\n{item[0]}:\n")
+                            f.write(f"\n  {item[0]}:\n")
                             for subitem in item[1]:
-                                f.write(f"  • {subitem}\n")
+                                f.write(f"    • {subitem}\n")
                         else:
-                            f.write(f"• {item}\n")
+                            f.write(f"  • {item}\n")
                 else:
                     f.write(f"{section[1]}\n")
                 f.write("\n")
-    
-    def share_recommendation(self):
-        """Share the recommendation via email or messaging"""
-        QMessageBox.information(
-            self,
-            "Share Recommendation",
-            "This feature would connect to email/messaging services to share your crop recommendation.\n\n"
-            "In a full implementation, it would:\n"
-            "1. Generate a shareable link\n"
-            "2. Open email client with prefilled content\n"
-            "3. Provide social media sharing options"
-        )
 
-# Sample crop database
-CROP_DATABASE = {
-    "rice": {
-        "description": "Rice is a staple food crop for more than half of the world's population. It's grown in flooded fields known as rice paddies.",
-        "growing_season": "Summer to early autumn",
-        "water_requirements": "High (flooded conditions)",
-        "soil_preference": "Clay soils that hold water well, pH 5.5-6.5",
-        "optimal_temperature": "20-35°C during growing season",
-        "nutritional_value": "Good source of carbohydrates, contains some protein, vitamins and minerals"
-    },
-    "wheat": {
-        "description": "Wheat is one of the world's most important cereal crops, used to make bread, pasta, and many other food products.",
-        "growing_season": "Winter wheat (planted in fall) or spring wheat",
-        "water_requirements": "Moderate",
-        "soil_preference": "Well-drained loamy soils, pH 6.0-7.0",
-        "optimal_temperature": "15-24°C during growing season",
-        "nutritional_value": "Rich in carbohydrates, contains protein, fiber, B vitamins and minerals"
-    }
-}
-
+# Main application execution
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = CropRecommendationResult(crop_name="rice", crop_data=CROP_DATABASE["rice"])
+    window = CropRecommendationResult(crop_name="Banana")
     window.setWindowTitle("Crop Recommendation System")
-    window.resize(1000, 700)
+    window.setMinimumSize(1024, 768)
     window.showMaximized()
     sys.exit(app.exec())

@@ -15,7 +15,7 @@ from file_processor import FileProcessor
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit,
     QPushButton, QMessageBox, QGridLayout, QGroupBox, QHBoxLayout,
-    QFileDialog
+    QFileDialog, QDialog
 )
 
 from PyQt6.QtGui import QFont, QIcon
@@ -84,6 +84,7 @@ class CropRecommendationApp(QWidget):
             }
         """)
         self.model = self.load_and_train_model()
+        self.predicted_crop = None  # To store the current recommendation
 
     def load_and_train_model(self):
         # Load the dataset
@@ -118,10 +119,10 @@ class CropRecommendationApp(QWidget):
         # Header Section
         header = QHBoxLayout()
         
-        # Add back 
-        self.back_btn = QPushButton("← Back")  # Text with arrow
-        self.back_btn.setFont(QFont("Segoe UI", 10))  # Smaller font size
-        self.back_btn.setFixedSize(80, 30)  # Wider but same height
+        # Add back button
+        self.back_btn = QPushButton("← Back")
+        self.back_btn.setFont(QFont("Segoe UI", 10))
+        self.back_btn.setFixedSize(80, 30)
         self.back_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2b8a3e;
@@ -206,7 +207,7 @@ class CropRecommendationApp(QWidget):
         file_layout.addWidget(self.file_label)
         
         # Add to grid layout (spanning 4 rows)
-        grid_layout.addWidget(file_upload_box, 0, 2, 4, 1)  # Row 0-3, Column 2
+        grid_layout.addWidget(file_upload_box, 0, 2, 4, 1)
 
         soil_group.setLayout(grid_layout)
         main_layout.addWidget(soil_group)
@@ -251,17 +252,14 @@ class CropRecommendationApp(QWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # Here you would typically go back to the previous screen
-            # For now, let's just close the window
             self.close()
 
     def add_auto_load_button(self, layout):
-        # Button to auto-load climate data
         auto_load_btn = QPushButton("🌍 Auto-Load Climate Data")
         auto_load_btn.setIconSize(QSize(24, 24))
         auto_load_btn.setToolTip("Click to automatically fetch climate data for the entered location.")
         auto_load_btn.clicked.connect(self.auto_load_climate_data)
-        layout.addWidget(auto_load_btn, 0, 0, 1, 2)  # Span across two columns
+        layout.addWidget(auto_load_btn, 0, 0, 1, 2)
 
     def auto_load_climate_data(self):
         location = self.location_input.text().strip()
@@ -317,25 +315,24 @@ class CropRecommendationApp(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to process soil report: {str(e)}")
 
     def update_inputs(self, data):
-        # Normalize keys by removing spaces and making lowercase
         normalized_data = {k.lower().replace(' ', ''): v for k, v in data.items()}
         
         input_mapping = {
             'nitrogen': self.nitrogen_input,
-            'Nitrogen': self.nitrogen_input,  # Alternative spelling
-            'n': self.nitrogen_input,       # Short form
-            'N': self.nitrogen_input,   
+            'Nitrogen': self.nitrogen_input,
+            'n': self.nitrogen_input,
+            'N': self.nitrogen_input,
             'phosphorus': self.phosphorus_input,
-            'phosphorous': self.phosphorus_input,  # Alternative spelling
-            'p': self.phosphorus_input,    # Short form
-            'P': self.phosphorus_input,  
+            'phosphorous': self.phosphorus_input,
+            'p': self.phosphorus_input,
+            'P': self.phosphorus_input,
             'potassium': self.potassium_input,
             'Potassium': self.potassium_input,
-            'k': self.potassium_input,     # Short form
-            'K': self.potassium_input, 
+            'k': self.potassium_input,
+            'K': self.potassium_input,
             'ph': self.ph_input,
-            'phvalue': self.ph_input,      # Alternative format
-            'ph_value': self.ph_input      # Alternative format
+            'phvalue': self.ph_input,
+            'ph_value': self.ph_input
         }
         
         found_any = False
@@ -343,7 +340,6 @@ class CropRecommendationApp(QWidget):
             if key in normalized_data:
                 try:
                     value = str(normalized_data[key]).strip()
-                    # Remove any units or extra text
                     value = ''.join(c for c in value if c.isdigit() or c in '.-')
                     input_field.setText(value)
                     found_any = True
@@ -472,32 +468,81 @@ class CropRecommendationApp(QWidget):
         # Predict the crop
         model, label_encoder = self.model
         prediction = model.predict(input_data)
-        predicted_crop = label_encoder.inverse_transform(prediction)[0]
+        self.predicted_crop = label_encoder.inverse_transform(prediction)[0]
 
-        # Display the recommendation
-        recommendation = f"🌱 Recommended crop: {predicted_crop}\n\n"
-        recommendation += "⚠️ Consider soil testing and amendment for optimal results."
-
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Crop Recommendation")
-        msg.setText(recommendation)
-        msg.setFont(QFont("Segoe UI", 12))
-        msg.setStyleSheet("""
-            QMessageBox {
+        # Create a custom dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Crop Recommendation")
+        dialog.setFixedSize(400, 250)  # Fixed size for consistency
+        
+        # Apply styling to the dialog
+        dialog.setStyleSheet("""
+            QDialog {
                 background-color: white;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
             }
-            QLabel {
-                color: #2b8a3e;
-                font-size: 14px;
-            }
+        """)
+        
+        # Main layout
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # Recommendation section
+        recommendation_label = QLabel("🌱 Recommended crop:")
+        recommendation_label.setFont(QFont("Segoe UI", 12))
+        recommendation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        crop_label = QLabel(self.predicted_crop)
+        crop_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        crop_label.setStyleSheet("color: #2b8a3e;")
+        crop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Note section
+        note_label = QLabel("Consider soil testing and amendment for optimal results.")
+        note_label.setFont(QFont("Segoe UI", 10))
+        note_label.setStyleSheet("color: #6c757d;")
+        note_label.setWordWrap(True)
+        note_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Details button
+        details_button = QPushButton("View Crop Details")
+        details_button.setFont(QFont("Segoe UI", 12))
+        details_button.setFixedHeight(40)
+        details_button.setStyleSheet("""
             QPushButton {
                 background-color: #2b8a3e;
                 color: white;
-                min-width: 100px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2f9e44;
             }
         """)
-        msg.exec()
+        details_button.clicked.connect(lambda: self.show_crop_details(dialog))
+        
+        # Add widgets to layout
+        layout.addWidget(recommendation_label)
+        layout.addWidget(crop_label)
+        layout.addSpacing(10)
+        layout.addWidget(note_label)
+        layout.addSpacing(20)
+        layout.addWidget(details_button)
+        
+        # Show the dialog
+        dialog.exec()
+
+    def show_crop_details(self, dialog=None):
+        """Open the crop details window"""
+        if dialog:
+            dialog.close()  # Close the recommendation dialog
+        
+        if hasattr(self, 'predicted_crop'):
+            self.close()  # Hide the main window
+            from detail import CropRecommendationResult  # Import here to avoid circular imports
+            self.detail_window = CropRecommendationResult(crop_name=self.predicted_crop)
+            self.detail_window.showMaximized()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
