@@ -246,9 +246,7 @@ class ProfileMenu(QWidget):
     
     def load_user_data(self):
         self.user_data = self.db_manager.get_user_data(self.username)
-        with open("user_session.txt", "w") as f:
-            for key, value in self.user_data.items():
-                f.write(f"{key}={value}\n")
+        # Remove the file writing part
     
     def initUI(self):
         main_layout = QVBoxLayout()
@@ -322,28 +320,35 @@ class ProfileMenu(QWidget):
         dialog = ProfileEditDialog(None, self.user_data)
         if dialog.exec():
             updated_data = dialog.get_user_data()
-            success, message = self.db_manager.update_user_profile(
-                updated_data["username"],
-                updated_data["email"],
-                updated_data["phone"],
-                updated_data["state"],
-                updated_data["city"]
-            )
-            
-            if success:
-                with open("user_session.txt", "w") as f:
-                    for key, value in updated_data.items():
-                        f.write(f"{key}={value}\n")
+            try:
+                success, message = self.db_manager.update_user_profile(
+                    updated_data["username"],
+                    updated_data["email"],
+                    updated_data["phone"],
+                    updated_data["state"],
+                    updated_data["city"]
+                )
                 
-                QMessageBox.information(None, "Profile Updated", "Your profile has been updated successfully!")
-                self.restartRequested.emit()
-                self.close()
-            else:
-                QMessageBox.critical(None, "Error", message)
+                if success:
+                    # Update the internal user_data
+                    self.user_data = updated_data
+                    
+                    QMessageBox.information(None, "Profile Updated", "Your profile has been updated successfully!")
+                    
+                    # Close just the dialog
+                    self.close()
+                    
+                    # Comment out the restart request to avoid closing the application
+                    # self.restartRequested.emit()
+                else:
+                    QMessageBox.critical(None, "Error", message)
+            except Exception as e:
+                QMessageBox.critical(None, "Error", f"An unexpected error occurred: {str(e)}")
     
     def logout(self):
-        if os.path.exists("user_session.txt"):
-            os.remove("user_session.txt")
+        # Remove this section
+        # if os.path.exists("user_session.txt"):
+        #    os.remove("user_session.txt")
 
         # Close the parent window (home_modified.py) if it exists
         if self.parent_window:

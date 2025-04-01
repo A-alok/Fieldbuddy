@@ -642,8 +642,19 @@ class CropRecommendationResult(QWidget):
             if not os.path.exists(csv_path):
                 return self.get_default_crop_data()
                 
-            # Read the CSV file
-            df = pd.read_csv(csv_path)
+            # Try reading with UTF-8 first, then fall back to other encodings if needed
+            encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+            
+            for encoding in encodings:
+                try:
+                    # Read the CSV file
+                    df = pd.read_csv(csv_path, encoding=encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                # If all encodings fail, return default data
+                return self.get_default_crop_data()
             
             # Clean the data by stripping whitespace from column names
             df.columns = df.columns.str.strip()
@@ -656,7 +667,7 @@ class CropRecommendationResult(QWidget):
                 
             crop_row = crop_row.iloc[0]
             
-            # Create a dictionary mapping section titles to CSV columns
+            # Rest of your method remains the same...
             section_mapping = {
                 "Description": "Description",
                 "Temperature Range": "Temperature Range",
@@ -680,10 +691,12 @@ class CropRecommendationResult(QWidget):
                 crop_data[section] = str(crop_row.get(csv_column, ""))
             
             return crop_data
-            
+        
         except Exception as e:
             print(f"Error loading crop data: {e}")
             return self.get_default_crop_data()
+            
+        
     
     def get_default_crop_data(self):
         """Return default crop data if none is provided"""

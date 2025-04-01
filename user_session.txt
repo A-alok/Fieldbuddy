@@ -1,5 +1,0 @@
-username=sachin
-email=None
-phone=None
-state=None
-city=None

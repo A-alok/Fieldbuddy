@@ -39,14 +39,18 @@ class HomeWindow(QMainWindow):
             "city": ""
         }
         
-        # Check if session file exists and load user data
-        if os.path.exists("user_session.txt"):
-            with open("user_session.txt", "r") as f:
-                for line in f:
-                    if "=" in line:
-                        key, value = line.strip().split("=", 1)
-                        if key in self.user_data:
-                            self.user_data[key] = value
+        # Instead of reading from file, connect to database if username exists
+        if self.username:
+            try:
+                # Import the database manager
+                from profile_dropdown import DatabaseManager
+                db_manager = DatabaseManager()
+                data = db_manager.get_user_data(self.username)
+                if data:
+                    self.user_data = data
+                db_manager.close()
+            except Exception as e:
+                print(f"Error loading user data from database: {e}")
 
     def setupWindowSize(self):
         screen = QGuiApplication.primaryScreen()
@@ -328,9 +332,16 @@ class HomeWindow(QMainWindow):
         self.profile_menu.restartRequested.connect(self.restart)
 
     def restart(self):
-        # Restart the application with the same username
-        QApplication.quit()
-        subprocess.Popen([sys.executable, "home_modified.py", self.user_data["username"]])
+        """Recreate the main window without process restart"""
+        # Store username
+        username = self.user_data["username"] if self.user_data else None
+        
+        # Close existing window
+        self.close()
+        
+        # Create new instance
+        new_window = HomeWindow(username)
+        new_window.showMaximized()
 
     def onRecommendationClicked(self):
         self.recommendation_window = CropRecommendationApp()
