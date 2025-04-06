@@ -75,6 +75,7 @@ class FileProcessor:
             r"Potassium\s*ppm K\s*(\d+)",  # Pattern 1
             r"K\s*\(?ppm\)?\s*[:=]?\s*([\d.]+)",  # Pattern 2
             r"K2O\s*[:=]?\s*([\d.]+)",  # Pattern 3
+            r"potassium\s*[:=]?\s*(\d+)",
         ]
 
         ph_patterns = [

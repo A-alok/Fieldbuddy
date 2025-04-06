@@ -35,6 +35,7 @@ class RoundedImageLabel(QLabel):
             painter.drawPixmap(self.rect(), scaled_pixmap)
         else:
             super().paintEvent(event)
+            
 class CropRecommendationResult(QWidget):
     def __init__(self, parent=None, crop_name=None):
         super().__init__(parent)

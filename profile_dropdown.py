@@ -1,16 +1,12 @@
-# profile_dropdown.py
 import sys
 import os
 import mysql.connector
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QDialog,
-    QLineEdit, QPushButton, QFormLayout, QFrame, QMessageBox, QGraphicsDropShadowEffect
+    QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QDialog, QMessageBox,
+    QLineEdit, QPushButton, QFormLayout, QFrame, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QGuiApplication
-# Remove the circular import
-# from login2 import MountainAuthApp
-# from home_modified import HomeWindow
 
 class ProfileEditDialog(QDialog):
     def __init__(self, parent=None, user_data=None):
@@ -146,6 +142,23 @@ class DatabaseManager:
             print(f"Error connecting to MySQL: {err}")
             QMessageBox.critical(None, "Database Error", 
                                f"Could not connect to database: {err}")
+            
+    
+    def update_recommendation(self, username, crop_name):
+        """Update the recommended crop for a user"""
+        try:
+            cursor = self.connection.cursor()
+            update_query = """
+                UPDATE users 
+                SET recommendedCrop = %s 
+                WHERE username = %s
+            """
+            cursor.execute(update_query, (crop_name, username))
+            self.connection.commit()
+            return cursor.rowcount > 0
+        except mysql.connector.Error as e:
+            print(f"Error updating recommendation: {e}")
+            return False
     
     def create_tables(self):
         cursor = self.connection.cursor()
@@ -182,7 +195,7 @@ class DatabaseManager:
     def get_user_data(self, username):
         try:
             cursor = self.connection.cursor(dictionary=True)
-            query = "SELECT username, email, phone, state, city FROM users WHERE username = %s"
+            query = "SELECT username, email, phone, state, city, recommendedCrop FROM users WHERE username = %s"
             cursor.execute(query, (username,))
             result = cursor.fetchone()
             cursor.close()
@@ -194,7 +207,8 @@ class DatabaseManager:
                     "email": result.get("email", ""),
                     "phone": result.get("phone", ""),
                     "state": result.get("state", ""),
-                    "city": result.get("city", "")
+                    "city": result.get("city", ""),
+                    "recommendedCrop": result.get("recommendedCrop", "")
                 }
             else:
                 return {
@@ -202,7 +216,8 @@ class DatabaseManager:
                     "email": "",
                     "phone": "",
                     "state": "",
-                    "city": ""
+                    "city": "",
+                    "recommendedCrop": ""
                 }
         except mysql.connector.Error as err:
             print(f"Error fetching user data: {err}")
@@ -211,7 +226,8 @@ class DatabaseManager:
                 "email": "",
                 "phone": "",
                 "state": "",
-                "city": ""
+                "city": "",
+                "recommendedCrop": ""
             }
     
     def close(self):
@@ -241,12 +257,25 @@ class ProfileMenu(QWidget):
         
         self.username = username
         self.db_manager = DatabaseManager()
+        self.user_data = {}
         self.load_user_data()
         self.initUI()
     
     def load_user_data(self):
-        self.user_data = self.db_manager.get_user_data(self.username)
-        # Remove the file writing part
+        print("Loading data for user:", self.username)  # Debug print
+        if not self.username:
+            return
+            
+        try:
+            db_data = self.db_manager.get_user_data(self.username)
+            print("Data from DB:", db_data)  # Debug print
+            
+            if db_data:
+                for key, value in db_data.items():
+                    if key in self.user_data:
+                        self.user_data[key] = value
+        except Exception as e:
+            print(f"Error loading user data: {str(e)}")
     
     def initUI(self):
         main_layout = QVBoxLayout()
@@ -285,7 +314,7 @@ class ProfileMenu(QWidget):
         dropdown_layout.setContentsMargins(0, 0, 0, 0)
         dropdown_layout.setSpacing(0)
         
-        user_info = QLabel(f"{self.user_data['username']}")
+        user_info = QLabel(f"{self.user_data.get('username', 'Unknown User')}")
         user_info.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         user_info.setStyleSheet("""
             background-color: #2b8a3e;
@@ -372,4 +401,3 @@ if __name__ == "__main__":
     window = ProfileMenu(test_username)
     window.show()
     sys.exit(app.exec())
-

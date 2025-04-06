@@ -21,6 +21,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import QSize, Qt
 import ee
+import mysql.connector
+from mysql.connector import Error
 
 # Authenticate your Google account
 ee.Authenticate()
@@ -31,8 +33,10 @@ ee.Initialize(project='ee-galok2812')
 OPENWEATHER_API_KEY = "127c824b89d5120bc1cc6a65e8337bd3"  # Replace with your valid API key
 
 class CropRecommendationApp(QWidget):
-    def __init__(self):
+    def __init__(self, username=None):
+        
         super().__init__()
+        self.username = username  # Store the username
         self.init_ui()
         self.setStyleSheet("""
             QWidget {
@@ -106,6 +110,31 @@ class CropRecommendationApp(QWidget):
         model.fit(X_train, y_train)
         
         return model, label_encoder
+
+    def save_recommendation_to_db(self, crop_name):
+        """Save the recommendation to the database"""
+        if not self.username:
+            print("No username provided")
+            return False
+            
+        try:
+            # Import the database manager
+            from profile_dropdown import DatabaseManager
+            db_manager = DatabaseManager()
+            
+            # Update the recommendedCrop field
+            success = db_manager.update_recommendation(self.username, crop_name)
+            db_manager.close()
+            
+            if not success:
+                print(f"Failed to save recommendation for {self.username}")
+                return False
+                
+            return True
+            
+        except Exception as e:
+            print(f"Error saving recommendation to database: {e}")
+            return False
 
     def init_ui(self):
         self.setWindowTitle("FieldBuddy: SmartCrop Advisor for Sustainable Farming")
@@ -469,6 +498,13 @@ class CropRecommendationApp(QWidget):
         model, label_encoder = self.model
         prediction = model.predict(input_data)
         self.predicted_crop = label_encoder.inverse_transform(prediction)[0]
+
+        # Save to database if username exists
+        if self.username:
+            success = self.save_recommendation_to_db(self.predicted_crop)
+            if not success:
+                QMessageBox.warning(self, "Database Error", 
+                                  "Could not save recommendation to database")
 
         # Create a custom dialog
         dialog = QDialog(self)
