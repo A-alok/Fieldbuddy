@@ -350,16 +350,16 @@ class WeatherContentWidget(QWidget):
     def get_weather_image(self, condition):
         # Mapping of weather conditions to image file paths
         weather_images = {
-            'Clear': "D:\\Project\\new\\clear sky.jpg",    # Clear sky
-            'Fog': "D:\\Project\\new\\foggy image.jpg",      # Foggy weather
-            'Dust': "D:\\Project\\new\\dusty image.jpg",     # Dusty weather
-            'Haze': "D:\\Project\\new\\haze images.jpg",     # Haze
-            'Smoke': "D:\\Project\\new\\smoky image.jpg",    # Smoky
-            'Mist': "D:\\Project\\new\\misty images.jpg",     # Misty
-            'Snow': "D:\\Project\\new\\snow image.jpg",     # Snow
-            'Thunderstorm': "D:\\Project\\new\\thunderstrom image.jpg",  # Thunderstorm
-            'Rain': "D:\\Project\\new\\rainy sky images.jpg",     # Rain
-            'Clouds': "D:\\Project\\new\\cloudy sky.jpg"  # Cloudy
+            'Clear': "E:\\Project\\new\\clear sky.jpg",    # Clear sky
+            'Fog': "E:\\Project\\new\\foggy image.jpg",      # Foggy weather
+            'Dust': "E:\\Project\\new\\dusty image.jpg",     # Dusty weather
+            'Haze': "E:\\Project\\new\\haze images.jpg",     # Haze
+            'Smoke': "E:\\Project\\new\\smoky image.jpg",    # Smoky
+            'Mist': "E:\\Project\\new\\misty images.jpg",     # Misty
+            'Snow': "E:\\Project\\new\\snow image.jpg",     # Snow
+            'Thunderstorm': "E:\\Project\\new\\thunderstrom image.jpg",  # Thunderstorm
+            'Rain': "E:\\Project\\new\\rainy sky images.jpg",     # Rain
+            'Clouds': "E:\\Project\\new\\cloudy sky.jpg"  # Cloudy
         }
         
         # Return the image path for the given condition

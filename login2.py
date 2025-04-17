@@ -99,7 +99,7 @@ class MountainAuthApp(QMainWindow):
         self.setWindowTitle("Mountain Authentication")
         self.setMinimumSize(500, 700)
         self.setWindowIcon(QIcon("icon.png"))
-        self.background_image = QPixmap("D:\\Project\\new\\bg.jpg")
+        self.background_image = QPixmap("E:\\Project\\new\\bg.jpg")
         
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)

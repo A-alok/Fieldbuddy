@@ -49,7 +49,7 @@ class HomeWindow(QMainWindow):
     def setup_ui(self):
         """Setup the main user interface"""
         self.setWindowTitle("FieldBuddy Dashboard")
-        self.setWindowIcon(QIcon(r"D:\Project\new\FieldBuddyLOGO.jpg"))
+        self.setWindowIcon(QIcon(r"E:\Project\new\FieldBuddyLOGO.jpg"))
         
         # Set initial window size (90% of screen)
         screen = QGuiApplication.primaryScreen().availableGeometry()
@@ -72,7 +72,7 @@ class HomeWindow(QMainWindow):
         self.central_widget.setAutoFillBackground(True)
         palette = self.central_widget.palette()
         
-        bg = QPixmap(r"D:\Project\new\bg.jpg")
+        bg = QPixmap(r"E:\Project\new\bg.jpg")
         if not bg.isNull():
             palette.setBrush(
                 QPalette.ColorRole.Window,
@@ -95,7 +95,7 @@ class HomeWindow(QMainWindow):
             int(120 * scale_factor),
             "rgba(255,255,255,0.7)",
             "#228B22",
-            r"D:\Project\new\FieldBuddyLOGO.jpg"
+            r"E:\Project\new\FieldBuddyLOGO.jpg"
         )
         
         self.title_label = self.create_label(
@@ -110,7 +110,7 @@ class HomeWindow(QMainWindow):
             int(60 * scale_factor),
             "rgba(255,255,255,0.7)",
             "#228B22",
-            r"D:\Project\new\profile-png-icon-2.jpg",
+            r"E:\Project\new\profile-png-icon-2.jpg",
             self.on_profile_clicked
         )
         
@@ -127,7 +127,7 @@ class HomeWindow(QMainWindow):
         
         self.weather_card = self.create_card(
             "WEATHER",
-            r"D:\Project\new\weather.png",
+            r"E:\Project\new\weather.png",
             self.on_weather_clicked,
             card_width,
             card_height
@@ -135,7 +135,7 @@ class HomeWindow(QMainWindow):
         
         self.market_card = self.create_card(
             "MARKET PRICE",
-            r"D:\Project\new\growth.png",
+            r"E:\Project\new\growth.png",
             self.on_market_clicked,
             card_width,
             card_height
@@ -143,7 +143,7 @@ class HomeWindow(QMainWindow):
         
         self.crop_card = self.create_card(
             "CROP DETAILS",
-            r"D:\Project\new\instructions.png",
+            r"E:\Project\new\instructions.png",
             self.on_crop_clicked,
             card_width,
             card_height
@@ -157,7 +157,7 @@ class HomeWindow(QMainWindow):
             
         self.recommendation_card = self.create_recommendation_card(
             rec_text,
-            r"D:\Project\new\main farmer.png",
+            r"E:\Project\new\main farmer.png",
             self.on_recommendation_clicked,
             rec_width,
             card_height
@@ -168,7 +168,7 @@ class HomeWindow(QMainWindow):
             int(80 * scale_factor),
             "rgba(255,255,255,0.7)",
             "#228B22",
-            r"D:\Project\new\Ai.png",
+            r"E:\Project\new\Ai.png",
             self.on_chatbot_clicked
         )
 

@@ -173,7 +173,7 @@ class CropRecommendationApp(QWidget):
         
         # Add icon and title
         icon_label = QLabel()
-        icon_label.setPixmap(QIcon("D:\\Project\\new\\FieldBuddyLOGO.jpg").pixmap(40, 40))
+        icon_label.setPixmap(QIcon("E:\\Project\\new\\FieldBuddyLOGO.jpg").pixmap(40, 40))
         header.addWidget(icon_label)
         
         title = QLabel("FieldBuddy!!!")
