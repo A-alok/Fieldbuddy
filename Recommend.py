@@ -89,6 +89,10 @@ class CropRecommendationApp(QWidget):
         """)
         self.model = self.load_and_train_model()
         self.predicted_crop = None  # To store the current recommendation
+        
+        # Load user's city from database if username is provided
+        if self.username:
+            self.load_user_city()
 
     def load_and_train_model(self):
         # Load the dataset
@@ -579,6 +583,21 @@ class CropRecommendationApp(QWidget):
             from detail import CropRecommendationResult  # Import here to avoid circular imports
             self.detail_window = CropRecommendationResult(crop_name=self.predicted_crop)
             self.detail_window.showMaximized()
+
+    def load_user_city(self):
+        """Load the user's city from the database"""
+        try:
+            from profile_dropdown import DatabaseManager
+            db_manager = DatabaseManager()
+            user_data = db_manager.get_user_data(self.username)
+            db_manager.close()
+            
+            if user_data and user_data.get('city'):
+                self.location_input.setText(user_data['city'])
+                # Only set the city, don't auto-load climate data
+        except Exception as e:
+            print(f"Error loading user city: {e}")
+            # Continue without city if there's an error
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

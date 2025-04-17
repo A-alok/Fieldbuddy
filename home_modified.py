@@ -40,6 +40,7 @@ class HomeWindow(QMainWindow):
                 for key, value in db_data.items():
                     if key in self.user_data:
                         self.user_data[key] = value
+                print(f"Loaded user data: {self.user_data}")  # Debug print
             db_manager.close()
         except Exception as e:
             print(f"Error loading user data: {str(e)}")
@@ -49,7 +50,7 @@ class HomeWindow(QMainWindow):
     def setup_ui(self):
         """Setup the main user interface"""
         self.setWindowTitle("FieldBuddy Dashboard")
-        self.setWindowIcon(QIcon(r"E:\Project\new\FieldBuddyLOGO.jpg"))
+        self.setWindowIcon(QIcon("images/FieldBuddyLOGO.png"))
         
         # Set initial window size (90% of screen)
         screen = QGuiApplication.primaryScreen().availableGeometry()
@@ -95,7 +96,7 @@ class HomeWindow(QMainWindow):
             int(120 * scale_factor),
             "rgba(255,255,255,0.7)",
             "#228B22",
-            r"E:\Project\new\FieldBuddyLOGO.jpg"
+            "images/FieldBuddyLOGO.png"
         )
         
         self.title_label = self.create_label(
@@ -229,14 +230,30 @@ class HomeWindow(QMainWindow):
             padding: 5px;
         """)
         
-        pixmap = QPixmap(image_path)
-        if not pixmap.isNull():
-            label.setPixmap(pixmap.scaled(
-                size-10, size-10,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            ))
-            
+        # Try to load the image
+        try:
+            print(f"Attempting to load image from: {image_path}")  # Debug print
+            pixmap = QPixmap(image_path)
+            if not pixmap.isNull():
+                print("Image loaded successfully")  # Debug print
+                label.setPixmap(pixmap.scaled(
+                    size-10, size-10,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                ))
+            else:
+                print("Failed to load image - pixmap is null")  # Debug print
+                # If image loading fails, show text instead
+                label.setText("FB")
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                label.setFont(QFont("Arial", int(size/3), QFont.Weight.Bold))
+        except Exception as e:
+            print(f"Error loading image: {str(e)}")  # Debug print
+            # Show text as fallback
+            label.setText("FB")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setFont(QFont("Arial", int(size/3), QFont.Weight.Bold))
+        
         return label
 
     def create_label(self, text, font_size, color, bold=False):
@@ -391,15 +408,7 @@ class HomeWindow(QMainWindow):
         """Handle profile button click"""
         from profile_dropdown import ProfileMenu
         self.profile_menu = ProfileMenu(self.username, self)
-        self.profile_menu.logoutRequested.connect(self.close)
-        self.profile_menu.restartRequested.connect(self.restart_app)
         self.profile_menu.show()
-
-    def restart_app(self):
-        """Restart the application"""
-        new_window = HomeWindow(self.username)
-        new_window.showMaximized()
-        self.close()
 
     def on_recommendation_clicked(self):
         """Handle recommendation card click"""
@@ -471,8 +480,8 @@ class HomeWindow(QMainWindow):
     def on_chatbot_clicked(self):
         """Handle chatbot button click"""
         from Chatbot import ChatbotApp
-        self.chatbot_window = ChatbotApp()
-        self.chatbot_window.showMaximized()
+        self.chatbot = ChatbotApp(self.user_data)
+        self.chatbot.showMaximized()
 
     def refresh_ui(self):
         """Refresh the UI after returning from recommendation"""
@@ -499,5 +508,5 @@ if __name__ == "__main__":
     username = sys.argv[1] if len(sys.argv) > 1 else None
     
     window = HomeWindow(username)
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())

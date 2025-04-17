@@ -31,7 +31,12 @@ class DatabaseManager:
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(50) UNIQUE NOT NULL,
                 password VARCHAR(100) NOT NULL,
-                remember_me BOOLEAN DEFAULT FALSE
+                remember_me BOOLEAN DEFAULT FALSE,
+                email VARCHAR(100),
+                phone VARCHAR(20),
+                state VARCHAR(50),
+                city VARCHAR(50),
+                recommendedCrop VARCHAR(100)
             )
         ''')
         self.connection.commit()
@@ -40,8 +45,14 @@ class DatabaseManager:
     def register_user(self, username, password):
         try:
             cursor = self.connection.cursor()
-            query = "INSERT INTO users (username, password) VALUES (%s, %s)"
-            cursor.execute(query, (username, password))
+            # Initialize all fields when creating a new user
+            query = """
+                INSERT INTO users 
+                (username, password, email, phone, state, city, recommendedCrop) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            # Initialize with empty strings for all fields
+            cursor.execute(query, (username, password, "", "", "", "", ""))
             self.connection.commit()
             cursor.close()
             return True, "Registration successful"
@@ -116,7 +127,7 @@ class MountainAuthApp(QMainWindow):
         # Load remembered credentials if they exist
         self.load_remembered_credentials()
         
-        self.show()
+        self.showMaximized()
     
     def load_remembered_credentials(self):
         remember = self.settings.value("remember_me", False, type=bool)
@@ -564,52 +575,31 @@ class MountainAuthApp(QMainWindow):
         self.stacked_widget.addWidget(signup_page)
     
     def login(self):
-        username = self.login_username_input.text().strip()
-        password = self.login_password_input.text().strip()
+        username = self.login_username_input.text()
+        password = self.login_password_input.text()
         remember = self.remember_checkbox.isChecked()
         
-        # Reset all error states and messages
-        self.set_input_error(self.login_username_input, False)
-        self.set_input_error(self.login_password_input, False)
-        self.login_error_label.setText("")
-        
-        # Validate inputs
-        if not username:
-            self.set_input_error(self.login_username_input, True)
-            self.login_error_label.setText("Please enter username")
-            return
-            
-        if not password:
-            self.set_input_error(self.login_password_input, True)
-            self.login_error_label.setText("Please enter password")
+        if not username or not password:
+            QMessageBox.warning(self, "Error", "Please enter both username and password")
             return
         
-        # Attempt authentication
         success, message = self.db_manager.authenticate_user(username, password)
         
         if success:
-            # Save credentials if "Remember me" is checked
+            # Save credentials if remember me is checked
             self.save_credentials(username, password, remember)
-            
-            # Update remember_me status in database
+            # Update remember_me in database
             self.db_manager.update_remember_me(username, remember)
-            
-            QMessageBox.information(self, "Success", "Login successful!")
-            self.login_username_input.clear()
-            self.login_password_input.clear()
-            self.login_error_label.setText("")
-            self.close()
+            # Launch home dashboard with username
             self.launch_home_dashboard(username)
         else:
-            self.set_input_error(self.login_username_input, True)
-            self.set_input_error(self.login_password_input, True)
-            self.login_error_label.setText(message)
+            QMessageBox.warning(self, "Error", message)
     
     def launch_home_dashboard(self, username):
         from home_modified import HomeWindow
-        self.home_window = HomeWindow(username)  # Create the home window instance
-        self.home_window.showMaximized()        # Show it maximized
-        self.close()                            # Close the login window
+        self.home_window = HomeWindow(username)
+        self.home_window.showMaximized()
+        self.close()
     
     def register(self):
         username = self.signup_username_input.text().strip()
