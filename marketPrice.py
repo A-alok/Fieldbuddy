@@ -7,6 +7,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtCore import Qt
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 class MarketPriceWindow(QMainWindow):
     def __init__(self):
@@ -20,7 +25,9 @@ class MarketPriceWindow(QMainWindow):
         #  1) API key
         #  2) Endpoint = resource for daily prices
         # ----------------------------------------------------------------
-        self.api_key = "579b464db66ec23bdd00000139065643d8cf44834d3a12901669ad5f"
+        self.api_key = os.getenv('DATA_GOV_API_KEY')
+        if not self.api_key:
+            raise ValueError("DATA_GOV_API_KEY not found in environment variables")
         # Official data.gov.in resource URL for "Current Daily Price..." dataset
         self.api_endpoint = (
             "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"

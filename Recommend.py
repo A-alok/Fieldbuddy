@@ -11,6 +11,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from pathlib import Path
 from file_processor import FileProcessor
+from dotenv import load_dotenv
+import ee
+import mysql.connector
+from mysql.connector import Error
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit,
@@ -20,17 +24,19 @@ from PyQt6.QtWidgets import (
 
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import QSize, Qt
-import ee
-import mysql.connector
-from mysql.connector import Error
+
+# Load environment variables
+load_dotenv()
+
+# Get API key from environment variables
+OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
+if not OPENWEATHER_API_KEY:
+    raise ValueError("OPENWEATHER_API_KEY not found in environment variables")
 
 # Authenticate your Google account
 ee.Authenticate()
 # Initialize Google Earth Engine
 ee.Initialize(project='ee-galok2812')
-
-# OpenWeather API Key
-OPENWEATHER_API_KEY = "127c824b89d5120bc1cc6a65e8337bd3"  # Replace with your valid API key
 
 class CropRecommendationApp(QWidget):
     def __init__(self, username=None):

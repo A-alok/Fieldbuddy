@@ -14,6 +14,11 @@ import pytz
 import math
 import numpy as np
 import re
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # List of major Indian cities with coordinates
 INDIAN_CITIES = [
@@ -32,7 +37,9 @@ class WeatherContentWidget(QWidget):
         self.unit = '°C'
         self.weather_data = None
         self.forecast_data = None
-        self.api_key = "8bd9b52bf43178e87f744a1d2dd2745f"  # Replace with your API key
+        self.api_key = os.getenv('OPENWEATHER_API_KEY')
+        if not self.api_key:
+            raise ValueError("OPENWEATHER_API_KEY not found in environment variables")
         self.current_city = INDIAN_CITIES[0]
         self.current_text_color = QColor(Qt.GlobalColor.black)  # Initialize text color
         self.init_ui()
