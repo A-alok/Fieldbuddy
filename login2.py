@@ -82,6 +82,19 @@ class DatabaseManager:
         except mysql.connector.Error as err:
             print(f"Error updating remember_me: {err}")
     
+    def update_recommendation(self, username, crop_name):
+        try:
+            cursor = self.connection.cursor()
+            query = "UPDATE users SET recommendedCrop = %s WHERE username = %s"
+            cursor.execute(query, (crop_name, username))
+            self.connection.commit()
+            cursor.close()
+            print(f"Updating recommendedCrop for user: {username} to {crop_name}")
+            # Always return success if no exception, even if rowcount == 0
+            return True, "Recommendation saved successfully"
+        except mysql.connector.Error as err:
+            return False, f"Error: {err}"
+    
     def close(self):
         if hasattr(self, 'connection') and self.connection.is_connected():
             self.connection.close()
