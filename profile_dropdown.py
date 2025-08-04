@@ -7,6 +7,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QGuiApplication
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 class ProfileEditDialog(QDialog):
     def __init__(self, parent=None, user_data=None):

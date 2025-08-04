@@ -6,16 +6,21 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QFrame, QCheckBox, QMessageBox, QStackedWidget)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont, QIcon, QPixmap
+import os
+from dotenv import load_dotenv
 # Import HomeWindow at the function level to avoid circular imports
+
+# Load environment variables
+load_dotenv()
 
 class DatabaseManager:
     def __init__(self):
         try:
             self.connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Tiger@2010",
-                database="fieldbuddy"
+                host=os.getenv('DB_HOST', 'localhost'),
+                user=os.getenv('DB_USER', 'root'),
+                password=os.getenv('DB_PASSWORD', ''),
+                database=os.getenv('DB_NAME', 'fieldbuddy')
             )
             self.create_tables()
             print("Database connection successful")
